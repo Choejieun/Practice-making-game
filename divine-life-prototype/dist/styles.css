@@ -124,8 +124,6 @@ button:focus-visible { outline: 2px solid var(--gold-pale); outline-offset: 3px;
   position: relative;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(129,110,71,.34);
-  background: linear-gradient(180deg, rgba(18,24,32,.78), rgba(7,10,15,.66));
   color: var(--gold-pale);
   font-size: clamp(1.2rem, 1.8vw, 1.55rem);
   font-weight: 500;
@@ -157,7 +155,7 @@ button:focus-visible { outline: 2px solid var(--gold-pale); outline-offset: 3px;
 }
 .intro-traits span:hover::after,
 .intro-traits span:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
-.intro-traits span:focus-visible { border-color: var(--gold-pale); }
+.intro-traits span:focus-visible { text-shadow: 0 0 18px rgba(215,195,139,.42); }
 .intro-traits.arrive span { animation: trait-arrive .75s ease both; }
 .intro-traits.arrive span:nth-child(2) { animation-delay: .18s; }
 .intro-traits.arrive span:nth-child(3) { animation-delay: .36s; }
