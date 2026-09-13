@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#060b1c" />
     <meta name="description" content="한 인간의 전 생애를 지켜보고 개입하는 다크 판타지 카드 게임 프로토타입" />
     <title>무명신의 기록</title>
-    <link rel="stylesheet" href="./styles.css?v=20260913-8" />
+    <link rel="stylesheet" href="./styles.css?v=20260913-9" />
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
@@ -36,12 +36,8 @@
 
     <main class="game-shell hidden" id="gameShell">
       <header class="topbar">
-        <div class="brand">
+        <div class="brand" aria-label="무명신의 상징">
           <span class="brand-mark" aria-hidden="true"><img src="./assets/icons/main-emblem.png" alt="" /></span>
-          <div>
-            <p class="eyebrow">THE UNSEEN HAND</p>
-            <h1>무명신의 기록</h1>
-          </div>
         </div>
         <div class="world-strip" aria-label="현재 게임 상태">
           <div class="intervention-state">
@@ -73,7 +69,12 @@
       </section>
 
       <section class="board">
-        <aside class="panel hero-panel" aria-label="영웅 상태">
+        <div class="side-popover-shell side-popover-left" id="heroPopoverShell">
+          <button class="side-popover-toggle" id="heroPopoverToggle" type="button" aria-controls="heroPopover" aria-expanded="false" aria-label="영웅 정보 열기">
+            <img src="./assets/icons/health.png" alt="" />
+            <span>영웅</span>
+          </button>
+          <aside class="panel hero-panel side-popover" id="heroPopover" aria-label="영웅 상태">
           <div class="panel-heading">
             <img class="heading-icon heading-icon-generic" src="./assets/icons/divine-star.png" alt="" />
             <h2>인간의 그릇</h2>
@@ -111,7 +112,8 @@
               <div class="mini-list" id="itemList"><p class="empty-copy">빈 손</p></div>
             </div>
           </section>
-        </aside>
+          </aside>
+        </div>
 
         <section class="play-column" aria-label="진행과 시련">
           <div class="phase-banner">
@@ -176,7 +178,12 @@
           </section>
         </section>
 
-        <aside class="panel chronicle-panel" aria-label="생애 기록">
+        <div class="side-popover-shell side-popover-right" id="chroniclePopoverShell">
+          <button class="side-popover-toggle" id="chroniclePopoverToggle" type="button" aria-controls="chroniclePopover" aria-expanded="false" aria-label="생애 기록 열기">
+            <img src="./assets/icons/chronicle.png" alt="" />
+            <span>기록</span>
+          </button>
+          <aside class="panel chronicle-panel side-popover" id="chroniclePopover" aria-label="생애 기록">
           <div class="panel-heading">
             <h2><img class="heading-icon" src="./assets/icons/chronicle.png" alt="" />생애의 기록</h2>
           </div>
@@ -200,7 +207,8 @@
           </section>
 
           <button class="end-observation" id="endObservationButton" type="button" disabled>관찰을 종료한다</button>
-        </aside>
+          </aside>
+        </div>
       </section>
     </main>
 
@@ -214,6 +222,6 @@
       </div>
     </div>
 
-    <script src="./game.js?v=20260913-8"></script>
+    <script src="./game.js?v=20260913-9"></script>
   </body>
 </html>

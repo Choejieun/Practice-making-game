@@ -775,6 +775,34 @@
     closable: true, actions: [{ label: "기록으로 돌아간다", primary: true, onClick: closeModal }]
   }));
   $("modalClose").addEventListener("click", closeModal);
+  const sidePopoverShells = [...document.querySelectorAll(".side-popover-shell")];
+  sidePopoverShells.forEach(shell => {
+    const toggle = shell.querySelector(".side-popover-toggle");
+    toggle.addEventListener("click", event => {
+      event.stopPropagation();
+      const willOpen = !shell.classList.contains("open");
+      sidePopoverShells.forEach(other => {
+        other.classList.remove("open");
+        other.querySelector(".side-popover-toggle")?.setAttribute("aria-expanded", "false");
+      });
+      shell.classList.toggle("open", willOpen);
+      toggle.setAttribute("aria-expanded", String(willOpen));
+    });
+  });
+  document.addEventListener("click", event => {
+    if (event.target.closest(".side-popover-shell")) return;
+    sidePopoverShells.forEach(shell => {
+      shell.classList.remove("open");
+      shell.querySelector(".side-popover-toggle")?.setAttribute("aria-expanded", "false");
+    });
+  });
+  document.addEventListener("keydown", event => {
+    if (event.key !== "Escape") return;
+    sidePopoverShells.forEach(shell => {
+      shell.classList.remove("open");
+      shell.querySelector(".side-popover-toggle")?.setAttribute("aria-expanded", "false");
+    });
+  });
   document.querySelectorAll(".log-tabs button").forEach(btn => btn.addEventListener("click", () => {
     document.querySelectorAll(".log-tabs button").forEach(b => b.classList.toggle("active", b === btn));
     $("chronicleView").classList.toggle("hidden", btn.dataset.tab !== "chronicle");
