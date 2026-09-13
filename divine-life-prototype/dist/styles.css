@@ -92,25 +92,32 @@ button:focus-visible { outline: 2px solid var(--gold-pale); outline-offset: 3px;
 .intro-primary { min-width: 210px; min-height: 50px; border: 1px solid var(--line-bright); color: #15110b; background: linear-gradient(180deg, #c2a363, #8e713f); padding: 0 24px; cursor: pointer; font-weight: 700; letter-spacing: .08em; transition: filter .2s ease, transform .2s ease; }
 .intro-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
 .intro-primary:disabled { transform: none; }
-.intro-story-step { display: grid; justify-items: center; gap: 28px; }
+.intro-story-step { min-height: calc(100vh - 84px); display: grid; grid-template-rows: auto auto; align-content: center; justify-items: center; gap: 14px; position: relative; }
 .intro-narration, .intro-question { min-height: 2em; margin: 0 auto; color: var(--ink); font-size: clamp(1.18rem, 2.3vw, 1.7rem); line-height: 1.85; letter-spacing: .055em; text-wrap: balance; }
+.intro-narration { position: absolute; z-index: 2; top: 50%; left: 0; right: 0; transform: translateY(-50%); transition: top 1.3s cubic-bezier(.33,0,.16,1), transform 1.3s cubic-bezier(.33,0,.16,1), color .8s ease; }
+.intro-story-step.lifted .intro-narration { top: 1%; transform: translateY(0); color: #c9c5bd; }
 .intro-narration::after, .intro-question::after { content: ""; display: inline-block; width: 1px; height: 1.15em; margin-left: 5px; vertical-align: -.15em; background: var(--gold); animation: intro-caret .8s step-end infinite; }
-.intro-cradle { width: min(1040px, 88vw); border: 0; padding: 0; color: var(--muted); background: transparent; cursor: pointer; opacity: 0; transform: translateY(16px); transition: opacity 1.3s ease, transform 1.3s ease; }
+.intro-narration.typed::after { animation: none; opacity: 0; transition: opacity .3s ease; }
+.intro-cradle { width: min(920px, 84vw); margin-top: 66px; border: 0; padding: 0; color: var(--muted); background: transparent; cursor: pointer; opacity: 0; transform: translateY(16px); transition: opacity 1.65s ease, transform 1.65s ease, width .8s ease; }
 .intro-cradle.revealed { opacity: 1; transform: translateY(0); }
-.intro-cradle img { display: block; width: 100%; max-height: 65vh; object-fit: cover; object-position: center; mask-image: linear-gradient(to bottom, transparent, #000 7%, #000 88%, transparent); filter: brightness(.74) saturate(.62) contrast(1.04); }
+.intro-cradle img { display: block; width: 100%; max-height: 38vh; object-fit: cover; object-position: center; mask-image: linear-gradient(to bottom, transparent, #000 7%, #000 88%, transparent); filter: brightness(.74) saturate(.62) contrast(1.04); }
 .intro-cradle span { display: block; margin-top: 8px; color: var(--dim); font-size: .84rem; letter-spacing: .14em; transition: color .2s ease; }
 .intro-cradle:hover span { color: var(--gold-pale); }
-.intro-trait-step { display: grid; justify-items: center; gap: 40px; }
+.intro-story-step.traits-revealed { align-content: start; }
+.intro-story-step.traits-revealed .intro-cradle { width: min(820px, 78vw); margin-top: 64px; }
+.intro-story-step.traits-revealed .intro-cradle span { opacity: 0; }
+.intro-reveal { display: grid; justify-items: center; gap: 13px; animation: intro-arrive .8s ease both; }
 .intro-question { max-width: 760px; }
-.intro-traits { min-height: 92px; display: flex; align-items: center; justify-content: center; gap: clamp(28px, 6vw, 82px); }
-.intro-traits span { min-width: 8ch; color: var(--gold-pale); font-size: clamp(1.5rem, 3.2vw, 2.5rem); font-weight: 500; letter-spacing: .1em; text-shadow: 0 0 22px rgba(173,141,81,.16); }
+.intro-reveal .intro-question { font-size: clamp(1.05rem, 1.8vw, 1.4rem); line-height: 1.55; }
+.intro-traits { min-height: 62px; display: flex; align-items: center; justify-content: center; gap: clamp(28px, 6vw, 82px); }
+.intro-traits span { min-width: 8ch; color: var(--gold-pale); font-size: clamp(1.4rem, 2.8vw, 2.2rem); font-weight: 500; letter-spacing: .1em; text-shadow: 0 0 22px rgba(173,141,81,.16); }
 .intro-traits span + span::before { content: "✦"; position: relative; left: clamp(-14px, -3vw, -40px); color: var(--line-bright); font-size: .84rem; }
 .intro-traits.arrive span { animation: trait-arrive .75s ease both; }
 .intro-traits.arrive span:nth-child(2) { animation-delay: .18s; }
 .intro-traits.arrive span:nth-child(3) { animation-delay: .36s; }
 .intro-traits.dissolve span { animation: trait-dissolve .55s ease both; }
 .intro-traits.return span { animation: trait-return .8s ease both; }
-.intro-actions { display: grid; justify-items: center; gap: 18px; animation: intro-arrive .7s ease both; }
+.intro-actions { display: grid; justify-items: center; gap: 9px; animation: intro-arrive .7s ease both; }
 .intro-reroll { border: 0; border-bottom: 1px solid transparent; color: var(--muted); background: transparent; padding: 6px 4px; cursor: pointer; font-size: .92rem; transition: color .2s ease, border-color .2s ease; }
 .intro-reroll:hover:not(:disabled) { color: var(--gold-pale); border-bottom-color: var(--line-bright); }
 .intro-reroll:disabled { color: var(--dim); opacity: .62; cursor: default; }
@@ -345,9 +352,15 @@ button:disabled { opacity: .35; cursor: not-allowed; filter: grayscale(.8); }
   .intro-screen { padding: 30px 18px; }
   .intro-screen::before { inset: 8px; }
   .intro-title-step h1 { font-size: 2.35rem; letter-spacing: .13em; text-indent: .13em; }
-  .intro-traits { flex-direction: column; gap: 20px; }
+  .intro-story-step { min-height: calc(100vh - 60px); gap: 8px; }
+  .intro-narration { font-size: 1.05rem; line-height: 1.65; }
+  .intro-cradle, .intro-story-step.traits-revealed .intro-cradle { width: 100%; margin-top: 82px; }
+  .intro-cradle img { max-height: 28vh; }
+  .intro-reveal { width: 100%; gap: 8px; }
+  .intro-traits { width: 100%; min-height: 50px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .intro-traits span { min-width: 0; font-size: 1rem; letter-spacing: .03em; }
   .intro-traits span + span::before { content: ""; }
-  .intro-cradle { width: 100%; }
+  .intro-actions { gap: 5px; }
   .game-shell { padding: 6px; }
   .topbar { display: block; }
   .brand { margin-bottom: 12px; }

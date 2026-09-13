@@ -558,10 +558,13 @@
     $("introScreen").classList.remove("hidden");
     showIntroStep("introTitleStep");
     $("introNarration").textContent = "";
+    $("introNarration").classList.remove("typed");
+    $("introStoryStep").classList.remove("lifted", "traits-revealed");
     $("introQuestion").textContent = "";
     $("introTraits").innerHTML = "";
     $("introTraits").className = "intro-traits";
     $("introActions").classList.add("hidden");
+    $("introReveal").classList.add("hidden");
     $("introCradleButton").classList.remove("revealed");
     $("introCradleButton").classList.add("hidden");
     $("introCradleButton").disabled = true;
@@ -621,15 +624,20 @@
     $("introStartButton").disabled = true;
     showIntroStep("introStoryStep");
     await typeIntroText($("introNarration"), "단순한 신의 유희인가, 영웅의 탄생을 축복하는 것인가. 오늘 여기 한 인간이 첫 숨을 쉰다.", 55);
-    await new Promise(resolve => setTimeout(resolve, 550));
-    $("introCradleButton").classList.remove("hidden");
-    requestAnimationFrame(() => $("introCradleButton").classList.add("revealed"));
-    $("introCradleButton").disabled = false;
+    $("introNarration").classList.add("typed");
+    await new Promise(resolve => setTimeout(resolve, 450));
+    $("introStoryStep").classList.add("lifted");
+    await new Promise(resolve => setTimeout(resolve, 1400));
+    const cradle = $("introCradleButton");
+    cradle.classList.remove("hidden");
+    requestAnimationFrame(() => requestAnimationFrame(() => cradle.classList.add("revealed")));
+    cradle.disabled = false;
   }
 
   async function revealChildTraits() {
     $("introCradleButton").disabled = true;
-    showIntroStep("introTraitStep");
+    $("introStoryStep").classList.add("traits-revealed");
+    $("introReveal").classList.remove("hidden");
     await typeIntroText($("introQuestion"), "이 아이가 영웅이 될 아이인가.", 62);
     renderIntroTraits();
     await new Promise(resolve => setTimeout(resolve, 500));
