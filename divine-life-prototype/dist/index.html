@@ -3,225 +3,133 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#060b1c" />
-    <meta name="description" content="한 인간의 전 생애를 지켜보고 개입하는 다크 판타지 카드 게임 프로토타입" />
+    <meta name="theme-color" content="#05070c" />
+    <meta name="description" content="한 인간의 생애를 관찰하는 다크 판타지 게임 프로토타입" />
     <title>무명신의 기록</title>
-    <link rel="stylesheet" href="./styles.css?v=20260913-11" />
+    <link rel="stylesheet" href="./styles.css?v=reset-4" />
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
-    <section class="intro-screen" id="introScreen" aria-label="게임 도입부">
-      <div class="intro-step intro-title-step" id="introTitleStep">
+
+    <main class="intro-screen" id="introScreen">
+      <section class="intro-step intro-title-step" id="introTitleStep">
         <p class="intro-kicker">THE UNSEEN HAND</p>
         <h1>무명신의 기록</h1>
         <button class="intro-primary" id="introStartButton" type="button">게임 시작</button>
-      </div>
+      </section>
 
-      <div class="intro-step intro-story-step hidden" id="introStoryStep">
+      <section class="intro-step intro-story-step hidden" id="introStoryStep">
         <p class="intro-narration" id="introNarration" aria-live="polite"></p>
-        <button class="intro-cradle hidden" id="introCradleButton" type="button" aria-label="요람 속 아이를 바라본다" disabled>
-          <img src="./assets/intro/cradle-scene.png" alt="어두운 방, 희미한 금빛 아래 요람에서 잠든 갓난아이" />
-          <span>아이를 바라본다</span>
+        <button class="intro-cradle hidden" id="introCradleButton" type="button" disabled aria-label="요람 속 아이">
+          <img src="./assets/intro/cradle-scene.png" alt="어둠 속 요람에서 잠든 아이" />
+          <span>아이에게 시선을 둔다</span>
         </button>
+
         <div class="intro-reveal hidden" id="introReveal">
           <p class="intro-question" id="introQuestion" aria-live="polite"></p>
           <div class="intro-traits" id="introTraits" aria-label="아이의 성격"></div>
           <div class="intro-actions hidden" id="introActions">
-            <button class="intro-primary" id="introBeginButton" type="button">이 운명을 지켜본다</button>
-            <button class="intro-reroll" id="introRerollButton" type="button">아이의 성격이 마음에 안 드는가?</button>
+            <button class="gold-button" id="introBeginButton" type="button">이 운명을 지켜본다</button>
+            <button class="text-button" id="introRerollButton" type="button">아이의 성격이 마음에 안 드는가?</button>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <main class="game-shell hidden" id="gameShell">
-      <header class="topbar">
-        <div class="brand" aria-label="무명신의 상징">
-          <span class="brand-mark" aria-hidden="true"><img src="./assets/icons/main-emblem.png" alt="" /></span>
-        </div>
-        <div class="world-strip" aria-label="현재 게임 상태">
-          <div class="intervention-state">
-            <img class="world-status-icon" src="./assets/icons/divine-star.png" alt="" />
-            <span>신성 개입</span>
-            <strong id="topIntervention">0</strong>
-            <div class="thin-meter"><i id="interventionMeter"></i></div>
-          </div>
-          <div class="watch-state">
-            <img class="world-status-icon" src="./assets/icons/divine-star.png" alt="" />
-            <span>지켜보기</span>
-            <strong id="topWatch">0 / 10</strong>
-          </div>
-          <button class="icon-button" id="helpButton" type="button" aria-label="게임 방법 보기">?</button>
-        </div>
-      </header>
-
-      <section class="life-timeline" aria-label="영웅의 생애 단계">
-        <div class="life-stages" id="lifeStages">
-          <div class="life-stage" data-life-stage="childhood"><span>유년기</span><i></i></div>
-          <div class="life-stage" data-life-stage="adolescent"><span>청소년기</span><i></i></div>
-          <div class="life-stage" data-life-stage="adult"><span>성인</span><i></i></div>
-          <div class="life-stage" data-life-stage="middle"><span>중년</span><i></i></div>
-          <div class="life-stage" data-life-stage="mature"><span>장년</span><i></i></div>
-          <div class="life-stage" data-life-stage="elder"><span>노년</span><i></i></div>
-          <div class="life-progress-track"><i id="lifeProgress"></i></div>
-          <strong class="life-timeline-age" id="lifeTimelineAge">0세</strong>
-        </div>
-      </section>
-
-      <section class="board">
-        <div class="side-popover-shell side-popover-left" id="heroPopoverShell">
-          <button class="side-popover-toggle" id="heroPopoverToggle" type="button" aria-controls="heroPopover" aria-expanded="false" aria-label="영웅 정보 열기">
-            <img src="./assets/icons/health.png" alt="" />
-            <span>영웅</span>
-          </button>
-          <aside class="panel hero-panel side-popover" id="heroPopover" aria-label="영웅 상태">
-          <div class="panel-heading">
-            <img class="heading-icon heading-icon-generic" src="./assets/icons/divine-star.png" alt="" />
-            <h2>인간의 그릇</h2>
-          </div>
-          <div class="hero-identity">
-            <div class="sigil" aria-hidden="true">
-              <span id="heroInitial">?</span>
-              <img id="heroPortrait" alt="" />
-            </div>
-            <div>
-              <p class="eyebrow" id="heroEpithet">이름 없는 아이</p>
-              <h3 id="heroName">―</h3>
-              <p class="hero-meta"><span id="topAge">0세</span><span id="topTurn">서막</span></p>
-              <p id="heroCondition">아직 운명이 시작되지 않았다.</p>
-            </div>
-          </div>
-
-          <section class="status-section">
-            <div class="section-title"><h3>성격</h3><span id="rerollCount">재추첨 2회</span></div>
-            <div class="chip-list" id="traitList"><span class="empty-copy">탄생을 기다리는 중</span></div>
-          </section>
-
-          <section class="status-section">
-            <div class="section-title"><h3><img class="section-icon" src="./assets/icons/health.png" alt="" />능력치</h3><span id="healthText">체력 ―</span></div>
-            <div class="stats" id="statsList"></div>
-          </section>
-
-          <section class="status-section split-status">
-            <div>
-              <div class="section-title"><h3><img class="section-icon" src="./assets/icons/relationship.png" alt="" />관계</h3></div>
-              <div class="mini-list" id="relationList"><p class="empty-copy">아직 맺어진 인연이 없다.</p></div>
-            </div>
-            <div>
-              <div class="section-title"><h3><img class="section-icon" src="./assets/icons/special-item.png" alt="" />특수 아이템</h3></div>
-              <div class="mini-list" id="itemList"><p class="empty-copy">빈 손</p></div>
-            </div>
-          </section>
-          </aside>
-        </div>
-
-        <section class="play-column" aria-label="진행과 시련">
-          <div class="phase-banner">
-            <div>
-              <p class="eyebrow" id="phaseKicker">탄생의 밤</p>
-              <h2 id="phaseTitle">한 인간이 첫 숨을 쉰다</h2>
-            </div>
-            <span class="phase-seal" id="phaseSeal">서막</span>
-          </div>
-
-          <div class="candidate-area" id="candidateArea">
-            <div class="candidate-heading">
-              <div><span class="eyebrow">ORIGIN</span><h3>타고난 성격</h3></div>
-              <p>세 장은 함께 한 인간의 기질이 된다.</p>
-            </div>
-            <div class="candidate-grid" id="candidateGrid"></div>
-            <div class="origin-actions">
-              <button class="secondary-button" id="rerollButton" type="button">성격 다시 엮기 <span>+1 개입</span></button>
-              <button class="primary-button" id="beginButton" type="button">이 운명을 지켜본다</button>
-            </div>
-          </div>
-
-          <div class="card-stage hidden" id="cardStage">
-            <article class="game-card progress-card" id="progressCard">
-              <div class="card-topline"><span>진행</span><span id="progressTag">―</span></div>
-              <div class="card-icon" aria-hidden="true"><img src="./assets/icons/divine-star.png" alt="" /></div>
-              <h3 id="progressTitle">진행을 선택하십시오</h3>
-              <p id="progressText">영웅의 다음 발걸음이 이곳에 기록됩니다.</p>
-              <footer id="progressEffect">과거와 성격에 따라 후보가 달라집니다.</footer>
-            </article>
-
-            <article class="game-card trial-card" id="trialCard">
-              <div class="card-topline"><span id="trialType">시련</span><span id="trialTimer">―</span></div>
-              <div class="card-icon danger" aria-hidden="true"><img id="trialIcon" src="./assets/icons/trial.png" alt="" /></div>
-              <h3 id="trialTitle">시련이 아직 없다</h3>
-              <p id="trialText">진행을 고르면 그 길에 놓인 시련이 모습을 드러냅니다.</p>
-              <div class="condition-list" id="trialConditions"></div>
-              <footer id="trialReward">성공 보상은 카드가 뒤집힌 뒤 공개됩니다.</footer>
-            </article>
-          </div>
-
-          <section class="divine-console hidden" id="divineConsole">
-            <div class="console-heading">
-              <div>
-                <span class="eyebrow icon-eyebrow"><img src="./assets/icons/divine-star.png" alt="" />DIVINE DECISION</span>
-                <h3>신의 응답</h3>
-              </div>
-              <p id="actionHint">신탁 한 장을 공개하거나, 아무것도 하지 않습니다.</p>
-            </div>
-            <div class="oracle-row" id="oracleRow"></div>
-            <button class="watch-button" id="watchButton" type="button">
-              <span class="watch-eye" aria-hidden="true"><img src="./assets/icons/divine-star.png" alt="" /></span>
-              <span><strong>지켜보기</strong><small>개입하지 않고 방관의 기억 +1</small></span>
-              <span class="watch-count" id="watchCount">0 / 10</span>
-            </button>
-          </section>
-
-          <section class="result-panel hidden" id="resultPanel" aria-live="polite">
-            <span class="result-mark" id="resultMark" aria-hidden="true"><img src="./assets/icons/divine-star.png" alt="" /></span>
-            <div><p class="eyebrow" id="resultKicker">판정</p><h3 id="resultTitle"></h3><p id="resultText"></p></div>
-            <button class="primary-button" id="continueButton" type="button">시간을 흐르게 한다</button>
-          </section>
-        </section>
-
-        <div class="side-popover-shell side-popover-right" id="chroniclePopoverShell">
-          <button class="side-popover-toggle" id="chroniclePopoverToggle" type="button" aria-controls="chroniclePopover" aria-expanded="false" aria-label="생애 기록 열기">
-            <img src="./assets/icons/chronicle.png" alt="" />
-            <span>기록</span>
-          </button>
-          <aside class="panel chronicle-panel side-popover" id="chroniclePopover" aria-label="생애 기록">
-          <div class="panel-heading">
-            <h2><img class="heading-icon" src="./assets/icons/chronicle.png" alt="" />생애의 기록</h2>
-          </div>
-          <div class="log-tabs" role="tablist">
-            <button class="active" data-tab="chronicle" type="button">기록</button>
-            <button data-tab="milestones" type="button"><img class="tab-icon" src="./assets/icons/milestone.png" alt="" />중요 사건</button>
-          </div>
-          <div class="log-view" id="chronicleView"></div>
-          <div class="log-view hidden" id="milestonesView"></div>
-
-          <section class="will-box">
-            <div class="section-title"><h3>인간의 의지</h3><span id="willThreshold">다음 10</span></div>
-            <div class="will-meter"><i id="willMeter"></i></div>
-            <div id="willList"><p class="empty-copy">신의 침묵 속에서 의지는 자란다.</p></div>
-          </section>
-
-          <section class="synthesis-box">
-            <div class="section-title"><h3>합성 진행</h3><span id="synthCount">0 해금</span></div>
-            <p>성격, 관계, 과거 사건이 겹치면 평범한 덱에 없던 삶이 열린다.</p>
-            <div id="synthesisList"><p class="empty-copy">아직 운명의 실이 만나지 않았다.</p></div>
-          </section>
-
-          <button class="end-observation" id="endObservationButton" type="button" disabled>관찰을 종료한다</button>
-          </aside>
         </div>
       </section>
     </main>
 
-    <div class="modal-backdrop hidden" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal" id="modal">
-        <button class="modal-close hidden" id="modalClose" type="button" aria-label="닫기">×</button>
-        <p class="eyebrow" id="modalKicker">기록</p>
-        <h2 id="modalTitle"></h2>
-        <div id="modalBody"></div>
-        <div class="modal-actions" id="modalActions"></div>
-      </div>
-    </div>
+    <main class="first-screen hidden" id="firstScreen" aria-label="아이의 생애 첫 화면">
+      <img class="first-emblem" src="./assets/icons/main-emblem.png" alt="무명신의 상징" />
 
-    <script src="./game.js?v=20260913-11"></script>
+      <aside class="hero-panel" id="heroPanel" aria-label="영웅 정보">
+        <button class="hero-panel-handle" id="heroPanelHandle" type="button" aria-expanded="false" aria-controls="heroPanel">
+          <img src="./assets/icons/health.png" alt="" />
+          <span>영웅</span>
+        </button>
+        <div class="hero-panel-head">
+          <img id="heroPanelPortrait" alt="아이의 초상" />
+          <div>
+            <small>관찰 중인 인간</small>
+            <strong id="heroPanelName"></strong>
+            <span>0세 · 유년기</span>
+          </div>
+        </div>
+        <div class="hero-panel-section">
+          <small>타고난 성격</small>
+          <div class="hero-panel-traits" id="heroPanelTraits"></div>
+        </div>
+        <dl class="hero-panel-facts">
+          <div><dt>부모</dt><dd id="heroParent"></dd></div>
+          <div><dt>재산</dt><dd id="heroWealth"></dd></div>
+        </dl>
+      </aside>
+
+      <section class="child-reveal" id="childReveal" aria-live="polite">
+        <div class="child-portrait-wrap">
+          <div class="child-portrait-halo" aria-hidden="true"></div>
+          <img id="childPortrait" alt="관찰할 아이의 초상" />
+        </div>
+        <div class="child-copy">
+          <p class="child-kicker">첫 번째 기록 · 유년기</p>
+          <h2 id="childName">이름 없는 아이</h2>
+          <div class="child-record" id="childRecord"></div>
+          <div class="child-traits" id="childTraits"></div>
+        </div>
+      </section>
+
+      <section class="card-stage" id="cardStage" aria-live="polite">
+        <nav class="card-stage-tabs" aria-label="현재 운명의 흐름">
+          <span class="active" id="progressTab">진행</span>
+          <span id="trialTab">시련</span>
+        </nav>
+        <p class="card-stage-label" id="cardStageLabel"></p>
+        <div class="card-table">
+          <article class="fate-card progress-card" id="progressCard">
+            <div class="card-face card-back">
+              <img src="./assets/icons/divine-star.png" alt="" />
+              <span>PROGRESS</span>
+            </div>
+            <div class="card-face card-front">
+              <small>진행</small>
+              <h3 id="progressTitle"></h3>
+              <p id="progressText"></p>
+              <footer id="progressEffect"></footer>
+            </div>
+          </article>
+
+          <article class="fate-card trial-card" id="trialCard">
+            <div class="card-face card-back trial-back">
+              <img src="./assets/icons/trial.png" alt="" />
+              <span>TRIAL</span>
+            </div>
+            <div class="card-face card-front">
+              <small>시련</small>
+              <h3 id="trialTitle"></h3>
+              <p id="trialText"></p>
+              <div class="trial-clock" id="trialClock"></div>
+              <footer id="trialHint"></footer>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="divine-hand" id="divineHand" aria-label="신의 개입 카드">
+        <p>시련에 개입하시겠습니까?</p>
+        <div class="hand-cards" id="handCards"></div>
+        <button class="watch-button" id="watchButton" type="button">개입하지 않고 지켜본다</button>
+      </section>
+
+      <section class="first-life-timeline" id="firstLifeTimeline" aria-label="유년기부터 노년기까지의 생애 진행도">
+        <div class="first-progress-line"><i></i></div>
+        <div class="first-life-stages">
+          <div class="first-life-stage active"><span>유년기</span><i><img src="./assets/icons/divine-star.png" alt="현재 단계" /></i></div>
+          <div class="first-life-stage"><span>청소년기</span><i></i></div>
+          <div class="first-life-stage"><span>성인</span><i></i></div>
+          <div class="first-life-stage"><span>중년</span><i></i></div>
+          <div class="first-life-stage"><span>장년</span><i></i></div>
+          <div class="first-life-stage"><span>노년</span><i></i></div>
+        </div>
+      </section>
+    </main>
+
+    <script src="./game.js?v=reset-4"></script>
   </body>
 </html>
