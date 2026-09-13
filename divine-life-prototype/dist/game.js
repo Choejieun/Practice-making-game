@@ -778,7 +778,8 @@
   const sidePopoverShells = [...document.querySelectorAll(".side-popover-shell")];
   sidePopoverShells.forEach(shell => {
     const toggle = shell.querySelector(".side-popover-toggle");
-    toggle.addEventListener("click", event => {
+    shell.addEventListener("click", event => {
+      if (event.target.closest(".side-popover")) return;
       event.stopPropagation();
       const willOpen = !shell.classList.contains("open");
       sidePopoverShells.forEach(other => {
