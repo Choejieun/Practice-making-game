@@ -706,7 +706,7 @@
     $("heroCondition").textContent = state.catastrophe ? "몸이 신성한 결정으로 변하고 있다." : state.hp <= 2 ? "숨이 가늘다. 죽음이 가까이 있다." : state.intervention >= 7 ? "기적의 흔적이 몸 안에서 꿈틀거린다." : "아직 인간의 시간 안에 머문다.";
     $("rerollCount").textContent = `재추첨 ${state.rerolls}회`;
     $("healthText").textContent = `체력 ${state.hp} / ${state.maxHp}`;
-    $("statsList").innerHTML = Object.entries(state.stats).map(([key, val]) => `<div class="stat-row"><span>${statNames[key]}</span><div class="stat-bar"><i style="width:${Math.min(100, val / 12 * 100)}%"></i></div><strong>${val}</strong></div>`).join("");
+    $("statsList").innerHTML = Object.entries(state.stats).map(([key, val]) => `<div class="stat-row stat-${key}"><span>${statNames[key]}</span><div class="stat-bar"><i style="width:${Math.min(100, val / 12 * 100)}%"></i></div><strong>${val}</strong></div>`).join("");
     renderTraits(false);
     $("relationList").innerHTML = state.relations.length ? state.relations.map(r => `<div class="mini-entry"><strong>${r}</strong><small>${r === "미라" ? "연구 판정에서 지식 +1" : "위기 판정에서 근력 +1"}</small></div>`).join("") : `<p class="empty-copy">아직 맺어진 인연이 없다.</p>`;
     $("itemList").innerHTML = state.items.length ? state.items.map(i => `<div class="mini-entry"><strong>${i}</strong><small>${itemDescription(i)}</small></div>`).join("") : `<p class="empty-copy">빈 손</p>`;

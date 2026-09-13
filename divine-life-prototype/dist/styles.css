@@ -238,16 +238,22 @@ button:focus-visible { outline: 2px solid var(--gold-pale); outline-offset: 3px;
 .section-title h3 { margin: 0; font-size: .95rem; letter-spacing: .1em; font-weight: 500; text-transform: uppercase; color: #d0c9b4; display: inline-flex; align-items: center; gap: 7px; }
 .section-icon { width: 34px; height: 34px; flex: 0 0 34px; object-fit: contain; filter: brightness(.84) saturate(.78) drop-shadow(0 0 5px rgba(173,141,81,.16)); }
 .section-title span { color: var(--dim); font-size: .86rem; }
+.section-title #healthText { color: #bd8d87; }
 .chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { border: 1px solid var(--line-bright); color: var(--gold-pale); background: rgba(173,141,81,.045); padding: 5px 8px; font-size: .9rem; }
 .empty-copy { color: var(--dim); font-size: .92rem; line-height: 1.6; margin: 0; }
 
 .stats { display: grid; gap: 9px; }
-.stat-row { display: grid; grid-template-columns: 32px 1fr 24px; align-items: center; gap: 8px; font-size: .92rem; }
-.stat-row span { color: var(--muted); }
-.stat-row strong { color: var(--gold-pale); text-align: right; font-weight: 500; }
+.stat-row { --stat-color: var(--gold); display: grid; grid-template-columns: 32px 1fr 24px; align-items: center; gap: 8px; font-size: .92rem; }
+.stat-row span { color: color-mix(in srgb, var(--stat-color) 56%, var(--ink)); }
+.stat-row strong { color: var(--stat-color); text-align: right; font-weight: 500; }
 .stat-bar { height: 4px; background: #192331; overflow: hidden; }
-.stat-bar i { display: block; height: 100%; background: linear-gradient(90deg, #66563d, var(--gold)); transition: width .4s ease; }
+.stat-bar i { display: block; height: 100%; background: linear-gradient(90deg, color-mix(in srgb, var(--stat-color) 55%, #1a1d22), var(--stat-color)); box-shadow: 0 0 8px color-mix(in srgb, var(--stat-color) 30%, transparent); transition: width .4s ease; }
+.stat-strength { --stat-color: #bd817c; }
+.stat-agility { --stat-color: #83a48d; }
+.stat-knowledge { --stat-color: #82a9b7; }
+.stat-intuition { --stat-color: #c4a063; }
+.stat-charm { --stat-color: #a8889b; }
 .split-status > div + div { margin-top: 18px; padding-top: 16px; border-top: 1px dashed #2b416d; }
 .mini-list { display: grid; gap: 7px; }
 .mini-entry { padding: 8px 9px; border-left: 2px solid var(--line-bright); background: rgba(82,96,119,.04); }
