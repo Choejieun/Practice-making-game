@@ -617,7 +617,7 @@
   function renderIntroTraits(effect = "arrive") {
     const box = $("introTraits");
     box.className = `intro-traits ${effect}`;
-    box.innerHTML = state.traits.map(trait => `<span>${trait.name}</span>`).join("");
+    box.innerHTML = state.traits.map(trait => `<span tabindex="0" data-tooltip="${trait.text}">${trait.name}</span>`).join("");
   }
 
   async function beginIntroStory() {

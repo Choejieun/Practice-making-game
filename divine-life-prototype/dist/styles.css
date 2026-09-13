@@ -109,9 +109,55 @@ button:focus-visible { outline: 2px solid var(--gold-pale); outline-offset: 3px;
 .intro-reveal { display: grid; justify-items: center; gap: 13px; animation: intro-arrive .8s ease both; }
 .intro-question { max-width: 760px; }
 .intro-reveal .intro-question { font-size: clamp(1.05rem, 1.8vw, 1.4rem); line-height: 1.55; }
-.intro-traits { min-height: 62px; display: flex; align-items: center; justify-content: center; gap: clamp(28px, 6vw, 82px); }
-.intro-traits span { min-width: 8ch; color: var(--gold-pale); font-size: clamp(1.4rem, 2.8vw, 2.2rem); font-weight: 500; letter-spacing: .1em; text-shadow: 0 0 22px rgba(173,141,81,.16); }
-.intro-traits span + span::before { content: "✦"; position: relative; left: clamp(-14px, -3vw, -40px); color: var(--line-bright); font-size: .84rem; }
+.intro-traits {
+  width: max-content;
+  max-width: 100%;
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: repeat(3, 190px);
+  justify-content: center;
+  gap: 14px;
+}
+.intro-traits span {
+  width: 190px;
+  height: 64px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(129,110,71,.34);
+  background: linear-gradient(180deg, rgba(18,24,32,.78), rgba(7,10,15,.66));
+  color: var(--gold-pale);
+  font-size: clamp(1.2rem, 1.8vw, 1.55rem);
+  font-weight: 500;
+  letter-spacing: .08em;
+  text-shadow: 0 0 22px rgba(173,141,81,.16);
+  outline: 0;
+}
+.intro-traits span::after {
+  content: attr(data-tooltip);
+  width: 230px;
+  position: absolute;
+  z-index: 8;
+  left: 50%;
+  bottom: calc(100% + 11px);
+  padding: 10px 12px;
+  border: 1px solid var(--line-bright);
+  background: rgba(5,8,13,.97);
+  box-shadow: 0 12px 30px rgba(0,0,0,.48);
+  color: var(--ink);
+  font-size: .84rem;
+  font-weight: 300;
+  line-height: 1.55;
+  letter-spacing: .025em;
+  text-align: left;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 7px);
+  transition: opacity .2s ease, transform .2s ease;
+}
+.intro-traits span:hover::after,
+.intro-traits span:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
+.intro-traits span:focus-visible { border-color: var(--gold-pale); }
 .intro-traits.arrive span { animation: trait-arrive .75s ease both; }
 .intro-traits.arrive span:nth-child(2) { animation-delay: .18s; }
 .intro-traits.arrive span:nth-child(3) { animation-delay: .36s; }
@@ -357,9 +403,9 @@ button:disabled { opacity: .35; cursor: not-allowed; filter: grayscale(.8); }
   .intro-cradle, .intro-story-step.traits-revealed .intro-cradle { width: 100%; margin-top: 82px; }
   .intro-cradle img { max-height: 28vh; }
   .intro-reveal { width: 100%; gap: 8px; }
-  .intro-traits { width: 100%; min-height: 50px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-  .intro-traits span { min-width: 0; font-size: 1rem; letter-spacing: .03em; }
-  .intro-traits span + span::before { content: ""; }
+  .intro-traits { width: max-content; min-height: 58px; grid-template-columns: repeat(3, 96px); gap: 6px; }
+  .intro-traits span { width: 96px; height: 54px; font-size: .9rem; letter-spacing: .02em; }
+  .intro-traits span::after { width: min(230px, 78vw); }
   .intro-actions { gap: 5px; }
   .game-shell { padding: 6px; }
   .topbar { display: block; }
