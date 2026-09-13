@@ -99,7 +99,7 @@
     const names = heroNames[gender];
     return {
       phase: "origin", gender, name: names[Math.floor(Math.random() * names.length)], age: 0, turn: 0,
-      traits: [], rerolls: 2, hp: 6, maxHp: 6,
+      traits: [], rerolls: 1, hp: 6, maxHp: 6,
       stats: { strength: 2, agility: 2, knowledge: 2, intuition: 2, charm: 2 },
       intervention: 0, watch: 0, watchThreshold: 10, watchContexts: [], wills: [],
       relations: [], items: [], flags: [], unlockedSynth: [], log: [], milestones: [],
@@ -143,6 +143,8 @@
   }
 
   function startGame() {
+    $("introScreen").classList.add("hidden");
+    $("gameShell").classList.remove("hidden");
     state.phase = "choose";
     state.turn = 1;
     state.age = ageSteps[1];
@@ -552,6 +554,20 @@
     closeModal();
     state = initialState();
     rollTraits();
+    $("gameShell").classList.add("hidden");
+    $("introScreen").classList.remove("hidden");
+    showIntroStep("introTitleStep");
+    $("introNarration").textContent = "";
+    $("introQuestion").textContent = "";
+    $("introTraits").innerHTML = "";
+    $("introTraits").className = "intro-traits";
+    $("introActions").classList.add("hidden");
+    $("introCradleButton").classList.remove("revealed");
+    $("introCradleButton").classList.add("hidden");
+    $("introCradleButton").disabled = true;
+    $("introStartButton").disabled = false;
+    $("introRerollButton").disabled = false;
+    $("introRerollButton").textContent = "아이의 성격이 마음에 안 드는가?";
     $("candidateArea").classList.remove("hidden");
     $("cardStage").classList.add("hidden");
     $("divineConsole").classList.add("hidden");
@@ -573,6 +589,67 @@
     if (origin) {
       $("candidateGrid").innerHTML = state.traits.map((t, i) => `<article class="candidate-card"><span class="index">0${i + 1} · TRAIT</span><h4>${t.name}</h4><p>${t.text}</p><footer>${t.tags.map(contextLabel).join(" · ")}</footer></article>`).join("");
     }
+  }
+
+  function showIntroStep(id) {
+    document.querySelectorAll(".intro-step").forEach(step => step.classList.toggle("hidden", step.id !== id));
+  }
+
+  function typeIntroText(element, text, speed = 48) {
+    element.textContent = "";
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) { element.textContent = text; return Promise.resolve(); }
+    return new Promise(resolve => {
+      let index = 0;
+      const write = () => {
+        element.textContent += text[index] || "";
+        index += 1;
+        if (index < text.length) setTimeout(write, speed);
+        else resolve();
+      };
+      write();
+    });
+  }
+
+  function renderIntroTraits(effect = "arrive") {
+    const box = $("introTraits");
+    box.className = `intro-traits ${effect}`;
+    box.innerHTML = state.traits.map(trait => `<span>${trait.name}</span>`).join("");
+  }
+
+  async function beginIntroStory() {
+    $("introStartButton").disabled = true;
+    showIntroStep("introStoryStep");
+    await typeIntroText($("introNarration"), "단순한 신의 유희인가, 영웅의 탄생을 축복하는 것인가. 오늘 여기 한 인간이 첫 숨을 쉰다.", 55);
+    await new Promise(resolve => setTimeout(resolve, 550));
+    $("introCradleButton").classList.remove("hidden");
+    requestAnimationFrame(() => $("introCradleButton").classList.add("revealed"));
+    $("introCradleButton").disabled = false;
+  }
+
+  async function revealChildTraits() {
+    $("introCradleButton").disabled = true;
+    showIntroStep("introTraitStep");
+    await typeIntroText($("introQuestion"), "이 아이가 영웅이 될 아이인가.", 62);
+    renderIntroTraits();
+    await new Promise(resolve => setTimeout(resolve, 500));
+    $("introActions").classList.remove("hidden");
+  }
+
+  function rerollIntroTraits() {
+    if (state.rerolls <= 0) return;
+    state.rerolls = 0;
+    state.intervention += 1;
+    const box = $("introTraits");
+    box.classList.add("dissolve");
+    $("introRerollButton").disabled = true;
+    setTimeout(() => {
+      state.traits = sample(traits, 3);
+      renderTraits(true);
+      renderIntroTraits("return");
+      $("introRerollButton").textContent = "아이의 운명은 이미 한번 바뀌었다";
+      renderAll();
+    }, 560);
   }
 
   function renderCandidates() {
@@ -672,6 +749,10 @@
     renderAll();
   });
   $("beginButton").addEventListener("click", startGame);
+  $("introStartButton").addEventListener("click", beginIntroStory);
+  $("introCradleButton").addEventListener("click", revealChildTraits);
+  $("introBeginButton").addEventListener("click", startGame);
+  $("introRerollButton").addEventListener("click", rerollIntroTraits);
   $("watchButton").addEventListener("click", watch);
   $("continueButton").addEventListener("click", nextTurn);
   $("endObservationButton").addEventListener("click", () => showModal({
@@ -682,7 +763,7 @@
   }));
   $("helpButton").addEventListener("click", () => showModal({
     kicker: "HOW TO PLAY", title: "한 인간의 삶을 지켜보는 법",
-    body: `<ol><li>0세에 무작위 성격 3개를 확정합니다. 재추첨은 2회까지 가능하지만 매번 신성 개입이 1 오릅니다.</li><li>매 생애 턴마다 성격·의지·관계·과거를 반영한 진행 후보 3개 중 하나를 고릅니다.</li><li>시련이 없으면 새 시련이 생깁니다. 즉시, 2턴, 3턴 제한 안에 조건을 충족해야 합니다.</li><li>신탁은 누르는 즉시 공개·적용되며 신성 개입이 오릅니다. 지켜보기는 방관을 쌓아 10 → 9 → 8 순으로 의지를 발현시킵니다.</li><li>의지는 즉시 독단 행동을 만들지 않고 이후 후보와 같은 맥락의 판정에 영향을 줍니다.</li><li>개입이 높아지면 재앙이 발생합니다. 일반 진행은 멈추고 ‘재앙의 끝’을 넘으면 인생의 갈림길을 얻습니다.</li></ol><div class="font-info"><span>사용 서체</span><strong>국립박물관문화재단클래식 Light · Medium · Bold</strong><a href="https://www.nmf.or.kr/agency/sub/20181024100034469100_contents.do" target="_blank" rel="noreferrer">공식 배포처 보기 ↗</a></div>`,
+    body: `<ol><li>0세에 무작위 성격 3개를 확정합니다. 운명을 바꾸는 재추첨은 한 번만 가능하며 신성 개입이 1 오릅니다.</li><li>매 생애 턴마다 성격·의지·관계·과거를 반영한 진행 후보 3개 중 하나를 고릅니다.</li><li>시련이 없으면 새 시련이 생깁니다. 즉시, 2턴, 3턴 제한 안에 조건을 충족해야 합니다.</li><li>신탁은 누르는 즉시 공개·적용되며 신성 개입이 오릅니다. 지켜보기는 방관을 쌓아 10 → 9 → 8 순으로 의지를 발현시킵니다.</li><li>의지는 즉시 독단 행동을 만들지 않고 이후 후보와 같은 맥락의 판정에 영향을 줍니다.</li><li>개입이 높아지면 재앙이 발생합니다. 일반 진행은 멈추고 ‘재앙의 끝’을 넘으면 인생의 갈림길을 얻습니다.</li></ol><div class="font-info"><span>사용 서체</span><strong>국립박물관문화재단클래식 Light · Medium · Bold</strong><a href="https://www.nmf.or.kr/agency/sub/20181024100034469100_contents.do" target="_blank" rel="noreferrer">공식 배포처 보기 ↗</a></div>`,
     closable: true, actions: [{ label: "기록으로 돌아간다", primary: true, onClick: closeModal }]
   }));
   $("modalClose").addEventListener("click", closeModal);

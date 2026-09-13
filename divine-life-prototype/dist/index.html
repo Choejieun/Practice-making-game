@@ -10,7 +10,32 @@
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
-    <main class="game-shell" id="gameShell">
+    <section class="intro-screen" id="introScreen" aria-label="게임 도입부">
+      <div class="intro-step intro-title-step" id="introTitleStep">
+        <p class="intro-kicker">THE UNSEEN HAND</p>
+        <h1>무명신의 기록</h1>
+        <button class="intro-primary" id="introStartButton" type="button">게임 시작</button>
+      </div>
+
+      <div class="intro-step intro-story-step hidden" id="introStoryStep">
+        <p class="intro-narration" id="introNarration" aria-live="polite"></p>
+        <button class="intro-cradle hidden" id="introCradleButton" type="button" aria-label="요람 속 아이를 바라본다" disabled>
+          <img src="./assets/intro/cradle-scene.png" alt="어두운 방, 희미한 금빛 아래 요람에서 잠든 갓난아이" />
+          <span>아이를 바라본다</span>
+        </button>
+      </div>
+
+      <div class="intro-step intro-trait-step hidden" id="introTraitStep">
+        <p class="intro-question" id="introQuestion" aria-live="polite"></p>
+        <div class="intro-traits" id="introTraits" aria-label="아이의 성격"></div>
+        <div class="intro-actions hidden" id="introActions">
+          <button class="intro-primary" id="introBeginButton" type="button">이 운명을 지켜본다</button>
+          <button class="intro-reroll" id="introRerollButton" type="button">아이의 성격이 마음에 안 드는가?</button>
+        </div>
+      </div>
+    </section>
+
+    <main class="game-shell hidden" id="gameShell">
       <header class="topbar">
         <div class="brand">
           <span class="brand-mark" aria-hidden="true"><img src="./assets/icons/main-emblem.png" alt="" /></span>
