@@ -4,7 +4,18 @@
   const $ = (id) => document.getElementById(id);
   const statNames = { strength: "근력", agility: "민첩", knowledge: "지식", intuition: "직감", charm: "매력" };
   const ageSteps = [0, 4, 7, 10, 13, 16, 19, 23, 27, 31, 35, 39, 43, 47, 51, 55, 59, 63, 67, 71, 76];
-  const names = ["엘리안", "리아", "에단", "세라핀", "카이렌", "이네스"];
+  const heroNames = {
+    male: ["엘리안", "에단", "카이렌"],
+    female: ["리아", "세라핀", "이네스"]
+  };
+  const lifeStages = [
+    { key: "childhood", label: "유년기", min: 0, max: 12 },
+    { key: "adolescent", label: "청소년기", min: 13, max: 19 },
+    { key: "adult", label: "성인", min: 20, max: 39 },
+    { key: "middle", label: "중년", min: 40, max: 54 },
+    { key: "mature", label: "장년", min: 55, max: 64 },
+    { key: "elder", label: "노년", min: 65, max: 76 }
+  ];
 
   const traits = [
     { id: "perfectionist", name: "완벽주의자", text: "높은 목표의 진행이 자주 나타나며 실패의 흔적을 오래 남긴다.", tags: ["ambition", "study"] },
@@ -84,8 +95,10 @@
   let state;
 
   function initialState() {
+    const gender = Math.random() < .5 ? "male" : "female";
+    const names = heroNames[gender];
     return {
-      phase: "origin", name: names[Math.floor(Math.random() * names.length)], age: 0, turn: 0,
+      phase: "origin", gender, name: names[Math.floor(Math.random() * names.length)], age: 0, turn: 0,
       traits: [], rerolls: 2, hp: 6, maxHp: 6,
       stats: { strength: 2, agility: 2, knowledge: 2, intuition: 2, charm: 2 },
       intervention: 0, watch: 0, watchThreshold: 10, watchContexts: [], wills: [],
@@ -351,7 +364,7 @@
     $("divineConsole").classList.add("hidden");
     $("resultPanel").classList.remove("hidden");
     $("resultPanel").classList.toggle("failure", !success);
-    $("resultMark").textContent = success ? "◇" : "†";
+    $("resultMark").classList.toggle("failure-mark", !success);
     $("resultKicker").textContent = success ? "TRIAL OVERCOME" : "THE MARK REMAINS";
     $("resultTitle").textContent = title;
     $("resultText").textContent = text;
@@ -481,11 +494,23 @@
   }
 
   function lifeStage(age) {
-    if (age < 13) return "유년";
-    if (age < 20) return "성장";
-    if (age < 40) return "청년";
-    if (age < 60) return "중년";
-    return "노년";
+    return lifeStages.find(stage => age >= stage.min && age <= stage.max)?.label || "노년";
+  }
+
+  function portraitStage(age) {
+    return lifeStages.find(stage => age >= stage.min && age <= stage.max) || lifeStages[lifeStages.length - 1];
+  }
+
+  function renderLifeTimeline() {
+    const current = portraitStage(state.age);
+    const activeIndex = lifeStages.findIndex(stage => stage.key === current.key);
+    document.querySelectorAll("[data-life-stage]").forEach((node, index) => {
+      node.classList.toggle("past", index < activeIndex);
+      node.classList.toggle("active", index === activeIndex);
+    });
+    $("lifeProgress").style.width = `${activeIndex / (lifeStages.length - 1) * 100}%`;
+    $("lifeTimelineAge").style.left = `${(activeIndex + .5) / lifeStages.length * 100}%`;
+    $("lifeTimelineAge").textContent = `${state.age}세`;
   }
 
   function contextLabel(context) {
@@ -564,6 +589,7 @@
     $("progressEffect").textContent = state.catastrophe ? "재앙이 끝날 때까지 일반 진행은 중단된다." : progress?.stat ? `${statNames[progress.stat]} +${progress.effect} 즉시 적용` : progress?.relation ? `${progress.relation}와의 관계가 생애에 추가되었다.` : progress?.item ? `${progress.item}을 획득했다.` : "과거와 성격이 이 진행을 열었다.";
     if (!trial) return;
     $("trialCard").classList.toggle("catastrophe", state.catastrophe);
+    $("trialIcon").src = state.catastrophe ? "./assets/icons/catastrophe.png" : "./assets/icons/trial.png";
     $("trialType").textContent = state.catastrophe ? "재앙 시련" : "활성 시련";
     $("trialTimer").textContent = trial.duration === 1 ? "즉시" : `${trial.remaining}턴 제한`;
     $("trialTitle").textContent = trial.title;
@@ -581,9 +607,16 @@
     $("topAge").textContent = `${state.age}세`;
     $("topTurn").textContent = state.phase === "origin" ? "서막" : `${state.turn}장`;
     $("topIntervention").textContent = state.intervention;
+    $("topWatch").textContent = `${state.watch} / ${state.watchThreshold}`;
     $("interventionMeter").style.width = `${Math.min(100, state.intervention / 12 * 100)}%`;
     $("heroName").textContent = state.name;
     $("heroInitial").textContent = state.name[0];
+    const portrait = $("heroPortrait");
+    const portraitPath = `./assets/portraits/${state.gender}-${portraitStage(state.age).key}.png`;
+    if (portrait.dataset.src !== portraitPath) {
+      portrait.dataset.src = portraitPath;
+      portrait.src = portraitPath;
+    }
     $("heroEpithet").textContent = state.phase === "origin" ? "이름 없는 아이" : `${lifeStage(state.age)}의 인간`;
     $("heroCondition").textContent = state.catastrophe ? "몸이 신성한 결정으로 변하고 있다." : state.hp <= 2 ? "숨이 가늘다. 죽음이 가까이 있다." : state.intervention >= 7 ? "기적의 흔적이 몸 안에서 꿈틀거린다." : "아직 인간의 시간 안에 머문다.";
     $("rerollCount").textContent = `재추첨 ${state.rerolls}회`;
@@ -598,6 +631,7 @@
     $("willList").innerHTML = state.wills.length ? state.wills.map(w => `<div class="will-card"><strong>${w.name}</strong><small>${w.text}</small></div>`).join("") : `<p class="empty-copy">신의 침묵 속에서 의지는 자란다.</p>`;
     $("synthCount").textContent = `${state.unlockedSynth.length} 해금`;
     $("synthesisList").innerHTML = state.unlockedSynth.length ? state.unlockedSynth.map(id => { const s = synthProgress.find(x => x.id === id); return `<div class="synth-entry"><strong>${s.title}</strong><small>${s.tag}</small></div>`; }).join("") : `<p class="empty-copy">아직 운명의 실이 만나지 않았다.</p>`;
+    renderLifeTimeline();
     renderLogs();
     if (state.phase === "action") renderCards();
   }
@@ -648,7 +682,7 @@
   }));
   $("helpButton").addEventListener("click", () => showModal({
     kicker: "HOW TO PLAY", title: "한 인간의 삶을 지켜보는 법",
-    body: `<ol><li>0세에 무작위 성격 3개를 확정합니다. 재추첨은 2회까지 가능하지만 매번 신성 개입이 1 오릅니다.</li><li>매 생애 턴마다 성격·의지·관계·과거를 반영한 진행 후보 3개 중 하나를 고릅니다.</li><li>시련이 없으면 새 시련이 생깁니다. 즉시, 2턴, 3턴 제한 안에 조건을 충족해야 합니다.</li><li>신탁은 누르는 즉시 공개·적용되며 신성 개입이 오릅니다. 지켜보기는 방관을 쌓아 10 → 9 → 8 순으로 의지를 발현시킵니다.</li><li>의지는 즉시 독단 행동을 만들지 않고 이후 후보와 같은 맥락의 판정에 영향을 줍니다.</li><li>개입이 높아지면 재앙이 발생합니다. 일반 진행은 멈추고 ‘재앙의 끝’을 넘으면 인생의 갈림길을 얻습니다.</li></ol>`,
+    body: `<ol><li>0세에 무작위 성격 3개를 확정합니다. 재추첨은 2회까지 가능하지만 매번 신성 개입이 1 오릅니다.</li><li>매 생애 턴마다 성격·의지·관계·과거를 반영한 진행 후보 3개 중 하나를 고릅니다.</li><li>시련이 없으면 새 시련이 생깁니다. 즉시, 2턴, 3턴 제한 안에 조건을 충족해야 합니다.</li><li>신탁은 누르는 즉시 공개·적용되며 신성 개입이 오릅니다. 지켜보기는 방관을 쌓아 10 → 9 → 8 순으로 의지를 발현시킵니다.</li><li>의지는 즉시 독단 행동을 만들지 않고 이후 후보와 같은 맥락의 판정에 영향을 줍니다.</li><li>개입이 높아지면 재앙이 발생합니다. 일반 진행은 멈추고 ‘재앙의 끝’을 넘으면 인생의 갈림길을 얻습니다.</li></ol><div class="font-info"><span>사용 서체</span><strong>국립박물관문화재단클래식 Light · Medium · Bold</strong><a href="https://www.nmf.or.kr/agency/sub/20181024100034469100_contents.do" target="_blank" rel="noreferrer">공식 배포처 보기 ↗</a></div>`,
     closable: true, actions: [{ label: "기록으로 돌아간다", primary: true, onClick: closeModal }]
   }));
   $("modalClose").addEventListener("click", closeModal);
