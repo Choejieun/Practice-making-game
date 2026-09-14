@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#05070c" />
     <meta name="description" content="한 인간의 생애를 관찰하는 다크 판타지 게임 프로토타입" />
     <title>무명신의 기록</title>
-    <link rel="stylesheet" href="./styles.css?v=life-cycle-3" />
+    <link rel="stylesheet" href="./styles.css?v=life-cycle-7" />
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
@@ -144,6 +144,10 @@
               <small>시련</small>
               <h3 id="trialTitle"></h3>
               <p id="trialText"></p>
+              <div class="trial-requirement" aria-label="시련 능력치 조건">
+                <p><span>필요 능력치</span><strong id="trialRequiredStat"></strong></p>
+                <p><span>현재 능력치</span><strong id="trialCurrentStat"></strong></p>
+              </div>
               <div class="trial-clock" id="trialClock"></div>
               <footer id="trialHint"></footer>
             </div>
@@ -169,6 +173,12 @@
             </div>
           </article>
         </div>
+        <article class="outcome-summary" id="outcomeSummary" aria-hidden="true">
+          <small id="outcomeKind">기록의 결과</small>
+          <h3 id="outcomeTitle"></h3>
+          <p id="outcomeText"></p>
+          <div id="outcomeTags"></div>
+        </article>
         <button class="next-turn hidden" id="nextTurnButton" type="button">다음 기록을 펼친다</button>
       </section>
 
@@ -202,6 +212,13 @@
         </div>
       </section>
 
+      <section class="catastrophe-curtain" id="catastropheCurtain" aria-hidden="true" aria-live="assertive">
+        <img src="./assets/icons/calamity.png" alt="" />
+        <small>신성 개입의 대가</small>
+        <h2 id="catastropheTitle"></h2>
+        <p id="catastropheText"></p>
+      </section>
+
       <section class="stage-curtain" id="stageCurtain" aria-live="polite">
         <small id="stageNumber"></small>
         <h2 id="stageTitle"></h2>
@@ -218,6 +235,6 @@
     </main>
 
     <script src="./life-content.js?v=life-cycle-2"></script>
-    <script src="./game.js?v=life-cycle-3"></script>
+    <script src="./game.js?v=life-cycle-7"></script>
   </body>
 </html>
