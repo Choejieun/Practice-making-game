@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#05070c" />
     <meta name="description" content="한 인간의 생애를 관찰하는 다크 판타지 게임 프로토타입" />
     <title>무명신의 기록</title>
-    <link rel="stylesheet" href="./styles.css?v=reset-4" />
+    <link rel="stylesheet" href="./styles.css?v=life-cycle-3" />
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
@@ -39,17 +39,47 @@
     <main class="first-screen hidden" id="firstScreen" aria-label="아이의 생애 첫 화면">
       <img class="first-emblem" src="./assets/icons/main-emblem.png" alt="무명신의 상징" />
 
+      <section class="persistent-hero-hud" aria-label="영웅의 핵심 상태">
+        <img id="hudPortrait" alt="영웅 초상" />
+        <div class="hud-identity">
+          <strong id="hudName"></strong>
+          <span id="hudAge"></span>
+        </div>
+        <img class="hud-health-icon" src="./assets/icons/health.png" alt="체력" />
+        <div class="hud-health">
+          <i><b id="hudHealthBar"></b></i>
+          <span id="hudHealthText"></span>
+        </div>
+      </section>
+
+      <section class="divine-resources" aria-label="남은 신의 행동">
+        <div><img src="./assets/icons/divine-star.png" alt="" /><span>신성 개입</span><strong id="divineCount">5 / 5</strong></div>
+        <div><img src="./assets/icons/main-emblem.png" alt="" /><span>지켜보기</span><strong id="watchCount">10</strong></div>
+        <button id="endObserveButton" type="button">관찰 종료</button>
+        <button id="helpButton" type="button" aria-label="게임 도움말">?</button>
+      </section>
+      <dialog id="helpDialog" class="help-dialog">
+        <h2>무명신의 기록</h2>
+        <p>진행은 영웅의 성격·의지·경험에 따라 자동으로 정해집니다. 즉시 시련은 현재 능력치를, 제한 시련은 매 턴의 노력을 확인합니다.</p>
+        <p>신성 개입은 한 생애에 5만큼 사용할 수 있습니다. 성격 재추첨도 1을 소모합니다. 누적 개입이 3 이상이면 장년에 재앙이 찾아옵니다.</p>
+        <p>지켜보기는 계속 사용할 수 있습니다. 표시되는 횟수는 다음 의지 발현까지 남은 관찰 횟수입니다. 10회, 9회, 8회 순으로 줄어들며 최근 지켜본 경험에서 의지가 생깁니다.</p>
+        <p>영웅 손잡이는 마우스를 올리거나 클릭해서 펼칩니다. ‘다음 기록’을 눌러 생애를 이어가고, ‘관찰 종료’로 언제든 회상할 수 있습니다.</p>
+        <p>서체: 국립박물관문화재단클래식 Light · Medium · Bold<br>제공: 국립박물관문화재단. 서체 원본은 수정하지 않았습니다.</p>
+        <button id="closeHelpButton" type="button">이야기로 돌아간다</button>
+      </dialog>
+
       <aside class="hero-panel" id="heroPanel" aria-label="영웅 정보">
         <button class="hero-panel-handle" id="heroPanelHandle" type="button" aria-expanded="false" aria-controls="heroPanel">
           <img src="./assets/icons/health.png" alt="" />
           <span>영웅</span>
         </button>
+        <div class="hero-panel-body">
         <div class="hero-panel-head">
           <img id="heroPanelPortrait" alt="아이의 초상" />
           <div>
             <small>관찰 중인 인간</small>
             <strong id="heroPanelName"></strong>
-            <span>0세 · 유년기</span>
+            <span id="heroAge">0세 · 유년기</span>
           </div>
         </div>
         <div class="hero-panel-section">
@@ -60,6 +90,16 @@
           <div><dt>부모</dt><dd id="heroParent"></dd></div>
           <div><dt>재산</dt><dd id="heroWealth"></dd></div>
         </dl>
+        <div class="hero-stats" id="heroStats" aria-label="영웅 능력치"></div>
+        <div class="hero-panel-section compact-records">
+          <small>의지</small>
+          <div id="heroWills" class="record-chips"><span>아직 발현되지 않았다</span></div>
+        </div>
+        <div class="hero-panel-section compact-records">
+          <small>중요 사건 · 인연 · 물품</small>
+          <div id="heroMilestones" class="record-list"><span>아직 기록이 없다</span></div>
+        </div>
+        </div>
       </aside>
 
       <section class="child-reveal" id="childReveal" aria-live="polite">
@@ -108,7 +148,28 @@
               <footer id="trialHint"></footer>
             </div>
           </article>
+
+          <article class="fate-card effort-card" id="effortCard">
+            <div class="card-face card-back">
+              <img src="./assets/icons/divine-star.png" alt="" />
+              <span>EFFORT</span>
+            </div>
+            <div class="card-face card-front">
+              <small id="effortCode">PROGRESS</small>
+              <h3 id="effortChallenge">노력의 진행</h3>
+              <div class="effort-condition">
+                <p><span>남은 시간</span><strong id="effortTime"></strong></p>
+                <p><span id="effortNeedLabel">필요 능력</span><strong id="effortNeed"></strong></p>
+                <p><span id="effortCurrentLabel">현재 능력</span><strong id="effortCurrent"></strong></p>
+              </div>
+              <h4>이번 턴의 노력</h4>
+              <b id="effortTitle"></b>
+              <p id="effortText"></p>
+              <footer><span id="effortRange"></span><button id="effortButton" type="button">노력한다</button></footer>
+            </div>
+          </article>
         </div>
+        <button class="next-turn hidden" id="nextTurnButton" type="button">다음 기록을 펼친다</button>
       </section>
 
       <section class="divine-hand" id="divineHand" aria-label="신의 개입 카드">
@@ -116,6 +177,18 @@
         <div class="hand-cards" id="handCards"></div>
         <button class="watch-button" id="watchButton" type="button">개입하지 않고 지켜본다</button>
       </section>
+
+      <div class="roll-overlay" id="rollOverlay" aria-hidden="true">
+        <section class="roll-popup" role="dialog" aria-modal="true" aria-labelledby="rollTitle">
+          <small id="rollKind">노력의 결과</small>
+          <h3 id="rollTitle">운명의 주사위</h3>
+          <div class="stat-die" id="statDie" aria-hidden="true">0</div>
+          <p class="roll-result" id="rollResult"></p>
+          <p class="roll-detail" id="rollDetail"></p>
+          <p class="roll-condition" id="rollCondition"></p>
+          <button class="roll-continue" id="rollContinue" type="button">결과를 기록한다</button>
+        </section>
+      </div>
 
       <section class="first-life-timeline" id="firstLifeTimeline" aria-label="유년기부터 노년기까지의 생애 진행도">
         <div class="first-progress-line"><i></i></div>
@@ -128,8 +201,23 @@
           <div class="first-life-stage"><span>노년</span><i></i></div>
         </div>
       </section>
+
+      <section class="stage-curtain" id="stageCurtain" aria-live="polite">
+        <small id="stageNumber"></small>
+        <h2 id="stageTitle"></h2>
+        <p id="stageDescription"></p>
+      </section>
+
+      <section class="ending-overlay" id="endingOverlay" aria-live="polite">
+        <small>생애 회상</small>
+        <h2 id="endingTitle"></h2>
+        <p id="endingText"></p>
+        <div id="endingRecords"></div>
+        <button id="restartButton" type="button">새 운명을 바라본다</button>
+      </section>
     </main>
 
-    <script src="./game.js?v=reset-4"></script>
+    <script src="./life-content.js?v=life-cycle-2"></script>
+    <script src="./game.js?v=life-cycle-3"></script>
   </body>
 </html>
