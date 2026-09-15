@@ -6,10 +6,11 @@
     <meta name="theme-color" content="#05070c" />
     <meta name="description" content="한 인간의 생애를 관찰하는 다크 판타지 게임 프로토타입" />
     <title>무명신의 기록</title>
-    <link rel="stylesheet" href="./styles.css?v=life-cycle-7" />
+    <link rel="stylesheet" href="./styles.css?v=0.16.0" />
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
+    <small class="build-version" aria-label="현재 게임 버전">v0.16.0 · 테스트 빌드</small>
 
     <main class="intro-screen" id="introScreen">
       <section class="intro-step intro-title-step" id="introTitleStep">
@@ -116,12 +117,17 @@
       </section>
 
       <section class="card-stage" id="cardStage" aria-live="polite">
-        <nav class="card-stage-tabs" aria-label="현재 운명의 흐름">
-          <span class="active" id="progressTab">진행</span>
-          <span id="trialTab">시련</span>
-        </nav>
+        <header class="card-scene-heading">
+          <small id="cardScenePhase">현재의 장면</small>
+          <h2 id="cardSceneTitle"></h2>
+        </header>
         <p class="card-stage-label" id="cardStageLabel"></p>
         <div class="card-table">
+          <div class="shuffle-deck" id="shuffleDeck" aria-hidden="true">
+            <i></i><i></i><i></i>
+            <img id="shuffleIcon" src="./assets/icons/divine-star.png" alt="" />
+            <span id="shuffleLabel">운명의 기록을 섞는 중</span>
+          </div>
           <article class="fate-card progress-card" id="progressCard">
             <div class="card-face card-back">
               <img src="./assets/icons/divine-star.png" alt="" />
@@ -235,6 +241,6 @@
     </main>
 
     <script src="./life-content.js?v=life-cycle-2"></script>
-    <script src="./game.js?v=life-cycle-7"></script>
+    <script src="./game.js?v=0.16.0"></script>
   </body>
 </html>

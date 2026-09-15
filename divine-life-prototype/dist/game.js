@@ -345,12 +345,12 @@
     $("introStartButton").disabled = true;
     $("introTitleStep").classList.add("hidden");
     $("introStoryStep").classList.remove("hidden");
-    await typeText($("introNarration"), "단순한 신의 유희인가, 영웅의 탄생을 축복하는 것인가. 오늘 여기 한 인간이 첫 숨을 쉰다.", 48, sequence);
+    await typeText($("introNarration"), "단순한 신의 유희인가, 영웅의 탄생을 축복하는 것인가. 오늘 여기 한 인간이 첫 숨을 쉰다.", 38, sequence);
     if (sequence !== state.sequence) return;
     $("introNarration").classList.add("typed");
-    await wait(420);
+    await wait(560);
     $("introStoryStep").classList.add("lifted");
-    await wait(1320);
+    await wait(1720);
     if (sequence !== state.sequence) return;
     const cradle = $("introCradleButton");
     cradle.classList.remove("hidden");
@@ -363,11 +363,11 @@
     $("introCradleButton").disabled = true;
     $("introStoryStep").classList.add("traits-revealed");
     $("introReveal").classList.remove("hidden");
-    await typeText($("introQuestion"), "이 아이가 영웅이 될 아이인가.", 55, sequence);
+    await typeText($("introQuestion"), "이 아이가 영웅이 될 아이인가.", 42, sequence);
     if (sequence !== state.sequence) return;
     $("introQuestion").classList.add("typed");
     renderIntroTraits();
-    await wait(460);
+    await wait(650);
     $("introActions").classList.remove("hidden");
   }
 
@@ -452,8 +452,8 @@
     line.innerHTML = `<small>${label}</small><span></span>`;
     $("childRecord").append(line);
     requestAnimationFrame(() => line.classList.add("visible"));
-    await typeText(line.querySelector("span"), value, 34, sequence);
-    await wait(190);
+    await typeText(line.querySelector("span"), value, 26, sequence);
+    await wait(260);
   }
 
   function renderTimeline() {
@@ -540,13 +540,46 @@
     requestAnimationFrame(() => document.querySelector(".persistent-hero-hud").classList.add("stat-pulse"));
   }
 
+  function relevantHeroSource(progress = state.progress) {
+    const tags = [...progress.weight, ...progress.trial.helpful];
+    return [...state.traits, ...state.wills]
+      .map(item => ({ item, score: item.tags.filter(tag => tags.includes(tag)).length + (state.wills.includes(item) ? .25 : 0) }))
+      .sort((a, b) => b.score - a.score)[0]?.item || state.traits[0];
+  }
+
+  function progressMemory() {
+    const lastHistory = state.history.at(-1);
+    if (state.wills.at(-1)) return `마음에 싹튼 ‘${state.wills.at(-1).name}’이라는 의지${state.milestones.at(-1) ? `와 ‘${state.milestones.at(-1)}’의 기억` : ""}`;
+    if (state.milestones.at(-1)) return `‘${state.milestones.at(-1)}’이라는 중요한 사건`;
+    if (state.relationships.at(-1)) return `${state.relationships.at(-1)}와 이어진 인연`;
+    if (lastHistory) return `지난 ‘${lastHistory.trial}’에서 ${lastHistory.success ? "얻은 확신" : "남은 실패의 흔적"}`;
+    return `${state.origin.parent}에게서 시작된 삶`;
+  }
+
+  function composeProgressStory() {
+    const progress = state.progress;
+    const trial = progress.trial;
+    const source = relevantHeroSource(progress);
+    const actor = state.name;
+    const previous = state.history.at(-1);
+    const memory = previous ? `지난 ‘${previous.trial}’의 ${previous.success ? "성공" : "실패"}를 떠올린다.` : `${state.origin.parent}의 ${state.gender === "male" ? "아들" : "딸"}이다.`;
+    const bridge = progress.catastrophe
+      ? `평생 쌓은 ${trial.statName}과 의지로 재앙에 맞서야 한다.`
+      : trial.mode === "instant"
+        ? `이제 쌓아 온 ${trial.statName}이 시험받는다.`
+        : `남은 ${state.trialTurns}번의 노력으로 ${trial.statName}을 길러야 한다.`;
+    return `${progress.text} ${withParticle(actor, "은", "는")} ${memory} ‘${source.name}’${state.wills.includes(source) ? "이라는 의지가" : "의 기질이"} 이끄는 걸음을 멈추지 않는다. ${bridge}`;
+  }
+
   function fillCards() {
     chooseProgress();
     const trial = state.progress.trial;
     renderHud();
+    $("cardScenePhase").textContent = `${currentStage().label} · ${state.progress.age || "현재"}`;
+    $("cardSceneTitle").textContent = state.progress.title;
     $("progressTitle").textContent = state.progress.title;
-    $("progressText").textContent = state.progress.text;
-    $("progressEffect").textContent = state.progress.effect;
+    $("progressText").textContent = composeProgressStory();
+    $("progressEffect").textContent = `장면의 근거 · ${relevantHeroSource().name}`;
     $("trialTitle").textContent = trial.title;
     $("trialText").textContent = trial.text;
     renderTrialRequirement(trial);
@@ -558,7 +591,7 @@
       return source?.tags.some(tag => trial.helpful.includes(tag));
     });
     const modeHint = trial.mode === "instant" ? "지금까지 쌓은 능력치로 즉시 판정한다." : "정해진 턴 동안 노력하며 능력치를 성장시킨다.";
-    $("trialHint").textContent = helping.length ? `${helping.join(" · ")}의 힘이 영향을 준다. ${modeHint}` : modeHint;
+    $("trialHint").textContent = helping.length ? `성격·의지의 영향 · ${helping.join(" · ")}` : modeHint;
   }
 
   function renderTrialRequirement(trial) {
@@ -608,7 +641,7 @@
       face = face >= effort.max ? effort.min : face + 1;
       die.textContent = String(face);
     }, 80);
-    try { await wait(980); } finally { clearInterval(rolling); }
+    try { await wait(1350); } finally { clearInterval(rolling); }
     let gain = effort.min + Math.floor(Math.random() * (effort.max - effort.min + 1));
     gain += state.nextEffortBonus || 0;
     state.nextEffortBonus = effort.nextBonus || 0;
@@ -649,7 +682,7 @@
     $("effortTime").textContent = Array.from({ length: state.trialTurns }, (_, index) => index < remaining ? "●" : "○").join("");
     $("effortNeedLabel").textContent = trial.alternativeStat ? "직감 또는 지식" : `필요 ${trial.statName}`;
     $("effortNeed").textContent = String(trial.threshold);
-    $("effortCurrentLabel").textContent = `현재 ${trial.statName}`;
+    $("effortCurrentLabel").textContent = trial.alternativeStat ? "현재 높은 능력" : `현재 ${trial.statName}`;
     $("effortCurrent").textContent = String(trialValue(trial));
     $("effortTitle").textContent = effort.title;
     $("effortText").textContent = effort.text;
@@ -723,6 +756,7 @@
     const screen = $("firstScreen");
     const outcome = composeOutcome(success);
     screen.classList.add(success ? "trial-success" : "trial-failure", "outcome-visible");
+    $("cardScenePhase").textContent = "기록의 결과";
     $("cardStageLabel").textContent = message + (state.pendingWill || "");
     $("outcomeKind").textContent = success ? "진행과 시련의 결과 · 성공" : "진행과 시련의 결과 · 실패";
     $("outcomeTitle").textContent = outcome.title;
@@ -739,8 +773,7 @@
     const screen = $("firstScreen");
     screen.classList.add("trial-effort");
     screen.classList.remove("hand-visible");
-    $("progressTab").classList.add("active");
-    $("trialTab").classList.add("related");
+    $("cardScenePhase").textContent = "시련을 넘어서는 중";
     state.nextEffortBonus = 0;
     let reached = trialReached(trial);
     if (reached) screen.classList.remove("trial-effort");
@@ -750,19 +783,19 @@
       setEffortCard(effort, trial, turn);
       $("cardStageLabel").textContent = `시련을 극복하기 위한 노력 · ${turn + 1}/${state.trialTurns}`;
       $("effortCard").className = "fate-card effort-card";
-      await wait(90);
+      await wait(150);
       $("effortCard").classList.add("drawn");
-      await wait(560);
+      await wait(760);
       $("effortCard").classList.add("flipped");
-      await wait(650);
+      await wait(850);
       await awaitEffortClick();
       reached = await showEffortRoll(effort, trial);
-      $("effortCurrent").textContent = String(state.stats[trial.stat]);
+      $("effortCurrent").textContent = String(trialValue(trial));
       if (!reached && turn < state.trialTurns - 1) {
         $("effortCard").classList.remove("flipped");
-        await wait(360);
+        await wait(520);
         $("effortCard").classList.remove("drawn");
-        await wait(360);
+        await wait(520);
       }
     }
     if (state.stats.vitality <= 0) reached = false;
@@ -833,7 +866,7 @@
     $("cardStageLabel").textContent = message;
     $("divineHand").classList.add("resolved");
     $("divineHand").querySelectorAll("button").forEach(button => { button.disabled = true; });
-    await wait(720);
+    await wait(980);
     if (state.progress.trial.mode === "turn") await runLimitedTrial();
     else await runInstantTrial();
   }
@@ -855,8 +888,10 @@
     $("trialCard").className = "fate-card trial-card";
     $("effortCard").className = "fate-card effort-card";
     $("divineHand").className = "divine-hand";
-    $("progressTab").className = "active";
-    $("trialTab").className = "";
+    $("shuffleDeck").className = "shuffle-deck";
+    $("shuffleDeck").setAttribute("aria-hidden", "true");
+    $("cardScenePhase").textContent = "현재의 장면";
+    $("cardSceneTitle").textContent = "";
     $("nextTurnButton").classList.add("hidden");
     $("outcomeSummary").setAttribute("aria-hidden", "true");
     state.resolving = false;
@@ -879,32 +914,54 @@
     curtain.setAttribute("aria-hidden", "true");
   }
 
+  async function shuffleFateCards(kind, sequence) {
+    const deck = $("shuffleDeck");
+    const isTrial = kind === "trial";
+    $("shuffleIcon").src = isTrial ? "./assets/icons/trial.png" : "./assets/icons/divine-star.png";
+    $("shuffleLabel").textContent = isTrial ? "이어질 시련을 섞는 중" : "이어질 기록을 섞는 중";
+    deck.setAttribute("aria-hidden", "false");
+    deck.className = "shuffle-deck visible";
+    await wait(120);
+    if (sequence !== state.sequence) return;
+    deck.classList.add("mixing");
+    await wait(1550);
+    if (sequence !== state.sequence) return;
+    deck.classList.remove("mixing");
+    await wait(330);
+    deck.className = "shuffle-deck";
+    deck.setAttribute("aria-hidden", "true");
+  }
+
   async function revealCards(sequence) {
     resetCardStage();
     fillCards();
     $("childReveal").classList.add("departed");
-    await wait(260);
+    await wait(420);
     if (state.progress.catastrophe) await showCatastrophePrelude(sequence);
     if (sequence !== state.sequence) return;
     $("firstScreen").classList.add("hero-collapsed", "card-stage-visible");
-    $("cardStageLabel").textContent = state.progress.catastrophe ? "재앙이 시작되었다. 일반 진행이 멈춘다." : "영웅의 성격과 의지, 과거가 다음 장면을 불러온다.";
-    await wait(620);
+    $("cardStageLabel").textContent = state.progress.catastrophe ? "재앙이 시작되었다. 일반 진행이 멈춘다." : `${state.name}의 삶에서 다음 장면을 고른다.`;
+    await wait(700);
+    if (sequence !== state.sequence) return;
+    await shuffleFateCards("progress", sequence);
     if (sequence !== state.sequence) return;
     $("progressCard").classList.add("drawn");
-    await wait(620);
+    await wait(850);
     $("progressCard").classList.add("flipped");
-    await wait(1150);
+    await wait(Math.max(5200, $("progressText").textContent.length * 45));
     if (sequence !== state.sequence) return;
     $("progressCard").classList.add("archived");
-    await wait(680);
-    $("progressTab").classList.remove("active");
-    $("trialTab").classList.add("active");
-    $("cardStageLabel").textContent = "이 진행에서 태어난 시련이 모습을 드러낸다.";
-    $("trialCard").classList.add("drawn");
-    await wait(620);
-    $("trialCard").classList.add("flipped");
-    await wait(850);
+    await wait(920);
+    $("cardScenePhase").textContent = "다가오는 시련";
+    $("cardStageLabel").textContent = `‘${state.progress.title}’의 결과가 ‘${state.progress.trial.title}’이라는 시련을 불러온다.`;
+    await shuffleFateCards("trial", sequence);
     if (sequence !== state.sequence) return;
+    $("trialCard").classList.add("drawn");
+    await wait(850);
+    $("trialCard").classList.add("flipped");
+    await wait(1120);
+    if (sequence !== state.sequence) return;
+    $("cardScenePhase").textContent = state.progress.trial.mode === "instant" ? "즉시 시련" : `${state.trialTurns}턴 제한 시련`;
     renderHand();
     $("firstScreen").classList.add("hand-visible");
   }
@@ -913,23 +970,29 @@
     const sequence = state.sequence;
     const stage = currentStage();
     resetCardStage();
-    renderTimeline();
     renderHud();
     const screen = $("firstScreen");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    screen.classList.remove("timeline-advancing");
     screen.classList.add("stage-transitioning");
     screen.classList.remove("timeline-docked");
-    $("stageNumber").textContent = `생애 ${String(state.stageIndex + 1).padStart(2, "0")}`;
+    $("stageNumber").textContent = `현재 성장기 · 생애 ${String(state.stageIndex + 1).padStart(2, "0")}`;
     $("stageTitle").textContent = stage.label;
     $("stageDescription").textContent = stage.description;
-    await wait(120);
-    $("stageCurtain").classList.add("visible");
-    await wait(1350);
+    await wait(1050);
     if (sequence !== state.sequence) return;
+    $("stageCurtain").classList.add("visible");
+    screen.classList.add("timeline-advancing");
+    renderTimeline();
+    await wait(2600);
+    if (sequence !== state.sequence) return;
+    screen.classList.remove("timeline-advancing");
+    await wait(650);
     screen.classList.add("timeline-docked");
-    await wait(900);
+    await wait(1900);
     $("stageCurtain").classList.remove("visible");
     screen.classList.remove("stage-transitioning");
-    await wait(420);
+    await wait(760);
     await revealCards(sequence);
   }
 
@@ -986,12 +1049,12 @@
     fillHeroPanel();
     renderTimeline();
     requestAnimationFrame(() => requestAnimationFrame(() => screen.classList.add("timeline-visible")));
-    await wait(900);
+    await wait(1350);
     if (sequence !== state.sequence) return;
     screen.classList.add("timeline-docked");
-    await wait(1100);
+    await wait(1800);
     screen.classList.add("child-visible");
-    await wait(360);
+    await wait(540);
     await appendRecord("이름", state.name, sequence);
     $("childName").textContent = state.name;
     await appendRecord("부모", state.origin.parent, sequence);
@@ -999,9 +1062,9 @@
     await appendRecord("태어난 곳", state.origin.place, sequence);
     if (sequence !== state.sequence) return;
     $("childTraits").classList.add("visible");
-    await wait(620);
+    await wait(850);
     screen.classList.add("hero-visible");
-    await wait(720);
+    await wait(980);
     await revealCards(sequence);
   }
 
