@@ -6,11 +6,12 @@
     <meta name="theme-color" content="#05070c" />
     <meta name="description" content="한 인간의 생애를 관찰하는 다크 판타지 게임 프로토타입" />
     <title>무명신의 기록</title>
-    <link rel="stylesheet" href="./styles.css?v=0.16.0" />
+    <link rel="stylesheet" href="./styles.css?v=0.18.0" />
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
-    <small class="build-version" aria-label="현재 게임 버전">v0.16.0 · 테스트 빌드</small>
+    <div class="stat-feedback" id="statFeedback" aria-live="polite" aria-label="능력치 성장 알림"></div>
+    <small class="build-version" aria-label="현재 게임 버전">v0.18.0 · 테스트 빌드</small>
 
     <main class="intro-screen" id="introScreen">
       <section class="intro-step intro-title-step" id="introTitleStep">
@@ -66,6 +67,14 @@
         <p>지켜보기는 계속 사용할 수 있습니다. 표시되는 횟수는 다음 의지 발현까지 남은 관찰 횟수입니다. 10회, 9회, 8회 순으로 줄어들며 최근 지켜본 경험에서 의지가 생깁니다.</p>
         <p>영웅 손잡이는 마우스를 올리거나 클릭해서 펼칩니다. ‘다음 기록’을 눌러 생애를 이어가고, ‘관찰 종료’로 언제든 회상할 수 있습니다.</p>
         <p>서체: 국립박물관문화재단클래식 Light · Medium · Bold<br>제공: 국립박물관문화재단. 서체 원본은 수정하지 않았습니다.</p>
+        <fieldset class="audio-settings"><legend>소리 설정</legend>
+          <label for="audio-music">배경 음악 <output id="audio-music-value">18%</output></label>
+          <input id="audio-music" type="range" min="0" max="100" value="18" />
+          <label for="audio-effects">효과음 <output id="audio-effects-value">28%</output></label>
+          <input id="audio-effects" type="range" min="0" max="100" value="28" />
+          <button id="audioMute" type="button" aria-pressed="false">전체 음소거</button>
+          <p>게임 전용 합성 음악·효과음. 외부 녹음이나 샘플을 사용하지 않습니다.</p>
+        </fieldset>
         <button id="closeHelpButton" type="button">이야기로 돌아간다</button>
       </dialog>
 
@@ -123,6 +132,12 @@
         </header>
         <p class="card-stage-label" id="cardStageLabel"></p>
         <div class="card-table">
+          <section class="progress-story" id="progressStory" aria-hidden="true">
+            <small>한 인간의 기록</small>
+            <p id="progressStoryText"></p>
+            <p class="progress-growth" id="progressGrowthResult"></p>
+            <button id="revealTrialButton" type="button" disabled>시련을 펼친다</button>
+          </section>
           <div class="shuffle-deck" id="shuffleDeck" aria-hidden="true">
             <i></i><i></i><i></i>
             <img id="shuffleIcon" src="./assets/icons/divine-star.png" alt="" />
@@ -189,11 +204,18 @@
       </section>
 
       <section class="divine-hand" id="divineHand" aria-label="신의 개입 카드">
-        <p>시련에 개입하시겠습니까?</p>
+        <p class="intervention-question">시련에 개입하시겠습니까?</p>
+        <div class="divine-praise" aria-live="polite"><p id="divinePraiseText"></p><small id="divinePraiseOdds"></small></div>
         <div class="hand-cards" id="handCards"></div>
         <button class="watch-button" id="watchButton" type="button">개입하지 않고 지켜본다</button>
       </section>
 
+      <section class="divine-regret" id="divineRegret" aria-hidden="true" role="status">
+        <img src="./assets/icons/main-emblem.png" alt="" />
+        <small>신의 짧은 탄식</small>
+        <p id="divineRegretText"></p>
+        <span>충분해 보였던 순간에도, 운명은 어긋난다.</span>
+      </section>
       <div class="roll-overlay" id="rollOverlay" aria-hidden="true">
         <section class="roll-popup" role="dialog" aria-modal="true" aria-labelledby="rollTitle">
           <small id="rollKind">노력의 결과</small>
@@ -207,9 +229,9 @@
       </div>
 
       <section class="first-life-timeline" id="firstLifeTimeline" aria-label="유년기부터 노년기까지의 생애 진행도">
-        <div class="first-progress-line"><i></i></div>
         <div class="first-life-stages">
-          <div class="first-life-stage active"><span>유년기</span><i><img src="./assets/icons/divine-star.png" alt="현재 단계" /></i></div>
+          <div class="first-progress-line" aria-hidden="true"><i></i></div>
+          <div class="first-life-stage active" aria-current="step"><span>유년기</span><i></i></div>
           <div class="first-life-stage"><span>청소년기</span><i></i></div>
           <div class="first-life-stage"><span>성인</span><i></i></div>
           <div class="first-life-stage"><span>중년</span><i></i></div>
@@ -241,6 +263,7 @@
     </main>
 
     <script src="./life-content.js?v=life-cycle-2"></script>
-    <script src="./game.js?v=0.16.0"></script>
+    <script src="./audio.js?v=0.18.0"></script>
+    <script src="./game.js?v=0.18.0"></script>
   </body>
 </html>

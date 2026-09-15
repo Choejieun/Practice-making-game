@@ -287,6 +287,8 @@
     state.origin = sample(origins)[0];
     state.rerolled = false;
     state.stats = { vitality: 6, strength: 2, agility: 2, knowledge: 2, intuition: 2, charm: 2 };
+    state.shownStats = null;
+    $("statFeedback").innerHTML = "";
     state.stageIndex = 0;
     state.roundInStage = 0;
     state.progress = null;
@@ -302,10 +304,14 @@
     state.outcomeSuccesses = 0;
     state.outcomeFailures = 0;
     state.catastropheSeen = false;
+    $("firstScreen").classList.remove("crisis");
     state.resolving = false;
     state.intervention = "watch";
     state.effortResolver = null;
     state.rollResolver = null;
+    state.storyResolver?.();
+    state.storyResolver = null;
+    state.progressGrowthApplied = false;
 
     $("introScreen").classList.remove("hidden");
     $("firstScreen").className = "first-screen hidden";
@@ -430,6 +436,7 @@
       return Array(score).fill(card);
     });
     state.progress = structuredClone(forced && !state.usedProgress.includes(forced.id) ? forced : sample(weighted)[0]);
+    state.progressGrowthApplied = false;
     const memory = state.history.filter(item => state.progress.id.includes("C09") || state.progress.id === "middle-B01" ? !item.success : item.success).at(-1);
     if (["P01-C06", "P01-C09", "middle-B01"].includes(state.progress.id) && memory) {
       state.progress.text += ` ‘${memory.trial}’의 경험을 떠올린다.`;
@@ -460,7 +467,7 @@
     document.querySelectorAll(".first-life-stage").forEach((node, index) => {
       node.classList.toggle("active", index === state.stageIndex);
       node.classList.toggle("completed", index < state.stageIndex);
-      node.querySelector("i").innerHTML = index === state.stageIndex ? '<img src="./assets/icons/divine-star.png" alt="현재 단계" />' : "";
+      node.setAttribute("aria-current", index === state.stageIndex ? "step" : "false");
     });
     const progress = state.stageIndex / (stages.length - 1) * 100;
     document.querySelector(".first-progress-line i").style.width = `${progress}%`;
@@ -507,7 +514,25 @@
     renderResources();
   }
 
+  function showStatFeedback(stat, before, after) {
+    window.divineAudio?.play('growth');
+    const notice = document.createElement("div");
+    notice.className = "stat-feedback-item";
+    notice.style.setProperty("--stat-color", stat.color);
+    notice.textContent = `${stat.label} ${after} (+${after - before})`;
+    $("statFeedback").append(notice);
+    requestAnimationFrame(() => notice.classList.add("visible"));
+    setTimeout(() => {
+      notice.classList.remove("visible");
+      setTimeout(() => notice.remove(), 550);
+    }, 2400);
+  }
+
   function renderStats() {
+    if (state.shownStats) statMeta.forEach(stat => {
+      if (state.stats[stat.key] > state.shownStats[stat.key]) showStatFeedback(stat, state.shownStats[stat.key], state.stats[stat.key]);
+    });
+    state.shownStats = { ...state.stats };
     $("heroStats").innerHTML = statMeta.map(stat => {
       const value = state.stats[stat.key];
       const percent = Math.min(100, value / stat.max * 100);
@@ -571,6 +596,25 @@
     return `${progress.text} ${withParticle(actor, "은", "는")} ${memory} ‘${source.name}’${state.wills.includes(source) ? "이라는 의지가" : "의 기질이"} 이끄는 걸음을 멈추지 않는다. ${bridge}`;
   }
 
+  function progressGrowth() {
+    const { stat, statName } = state.progress.trial;
+    return { stat, statName, amount: stat === "vitality" && state.stats.vitality >= 12 ? 0 : 1 };
+  }
+
+  function grantProgressGrowth() {
+    if (state.progressGrowthApplied) return;
+    state.progressGrowthApplied = true;
+    const { stat, statName, amount } = progressGrowth();
+    const before = state.stats[stat];
+    state.stats[stat] += amount;
+    $("progressGrowthResult").textContent = amount
+      ? `진행의 기본 성장 · ${statName} +${amount} (${before} → ${state.stats[stat]})`
+      : `진행의 기본 성장 · ${statName} 최대치 유지`;
+    $("progressEffect").textContent = amount ? `기본 성장 적용 · ${statName} +${amount}` : `${statName} 최대치 유지`;
+    animateStat(stat);
+    renderTrialRequirement(state.progress.trial);
+  }
+
   function fillCards() {
     chooseProgress();
     const trial = state.progress.trial;
@@ -578,8 +622,10 @@
     $("cardScenePhase").textContent = `${currentStage().label} · ${state.progress.age || "현재"}`;
     $("cardSceneTitle").textContent = state.progress.title;
     $("progressTitle").textContent = state.progress.title;
-    $("progressText").textContent = composeProgressStory();
-    $("progressEffect").textContent = `장면의 근거 · ${relevantHeroSource().name}`;
+    $("progressText").textContent = state.progress.text.split(/(?<=[.!?])\s/)[0];
+    const growth = progressGrowth();
+    $("progressEffect").textContent = growth.amount ? `기본 성장 · ${growth.statName} +${growth.amount} 보장` : `${growth.statName} 최대치 유지`;
+    $("progressStoryText").textContent = composeProgressStory();
     $("trialTitle").textContent = trial.title;
     $("trialText").textContent = trial.text;
     renderTrialRequirement(trial);
@@ -605,12 +651,44 @@
     $("trialCurrentStat").textContent = `${trial.statName} ${state.stats[trial.stat]}`;
   }
 
+  const praiseLines = [
+    "뿌듯한데.", "보기 좋아.", "흐뭇해.", "영웅의 자질을 가졌구나.", "이 정도는 혼자 해낼 수 있겠어.",
+    "제법 단단해졌구나.", "내 손길이 필요 없겠는걸.", "잘 자라 주었구나.", "믿고 지켜볼 만하겠어.", "눈빛부터 달라졌구나.",
+    "그동안의 노력이 보이는군.", "이제 네 힘을 보여 주렴.", "여기까지 스스로 왔구나.", "꽤 든든한걸.", "한결 의젓해졌어.",
+    "작은 걸음들이 헛되지 않았구나.", "네 성장이 기쁘구나.", "이 순간을 기다렸지.", "좋아, 네게 맡기마.", "조용히 응원하고 있으마.",
+    "스스로 빛날 때가 되었구나.", "내가 보는 눈은 있었군.", "배운 것을 잘 간직했구나.", "네 앞날이 기대되는걸.", "이만하면 충분히 준비됐어.",
+    "한 인간의 성장이란 놀랍구나.", "오늘은 손을 거두어도 좋겠어.", "이번에는 네 차례란다.", "참 대견한 아이로구나.", "그래, 네 힘으로 나아가렴."
+  ];
+
+  // The displayed raw ability controls equality risk; bonuses cannot erase it.
+  function trialVerdict(eligible) {
+    const unlucky = eligible && trialValue(state.progress.trial) === state.progress.trial.threshold && Math.random() < .1;
+    return { success: eligible && !unlucky, unlucky };
+  }
+
+  async function showDivineRegret() {
+    window.divineAudio?.play('regret');
+    const lines = ["아… 잘할 수 있었는데.", "조금만 더 닿았더라면.", "안타깝구나. 그래도 네 노력은 보았다.", "이번에는 운명이 야속하구나.", "괜찮다. 이 순간이 네 전부는 아니니."];
+    $("divineRegretText").textContent = lines[Math.floor(Math.random() * lines.length)];
+    $("divineRegret").setAttribute("aria-hidden", "false");
+    $("divineRegret").classList.add("visible");
+    await wait(2600);
+    $("divineRegret").classList.remove("visible");
+    await wait(600);
+    $("divineRegret").setAttribute("aria-hidden", "true");
+  }
+
   function renderHand() {
+    const sufficient = trialReached(state.progress.trial);
+    $("divineHand").classList.toggle("self-sufficient", sufficient);
+    $("watchButton").textContent = sufficient ? "지켜보기" : "개입하지 않고 지켜본다";
+    $("divinePraiseText").textContent = sufficient ? praiseLines[Math.floor(Math.random() * praiseLines.length)] : "";
+    $("divinePraiseOdds").textContent = sufficient ? (trialValue(state.progress.trial) === state.progress.trial.threshold ? "필요 능력치와 동일 · 성공 90% / 실패 10%" : "필요 능력치 초과 · 스스로 해낼 수 있다") : "";
     $("watchButton").disabled = false;
     $("handCards").innerHTML = interventions.map((card, index) => {
-      const disabled = state.divine < card.cost;
+      const disabled = sufficient || state.divine < card.cost;
       return `<button class="hand-card" type="button" data-kind="${card.kind}" data-cost="${card.cost}" style="--hand-index:${index}" ${disabled ? "disabled" : ""}>
-        <small>개입 ${card.cost}</small><strong>${card.title}</strong><span>${disabled ? "신성 개입이 부족하다." : card.text}</span>
+        <small>개입 ${card.cost}</small><strong>${card.title}</strong><span>${sufficient ? "영웅의 힘에 맡긴다." : disabled ? "신성 개입이 부족하다." : card.text}</span>
       </button>`;
     }).join("");
     $("handCards").querySelectorAll(".hand-card").forEach(card => card.addEventListener("click", action(() => useIntervention(card))));
@@ -626,6 +704,7 @@
   }
 
   async function showEffortRoll(effort, trial) {
+    window.divineAudio?.play('dice');
     const popup = $("rollOverlay");
     const die = $("statDie");
     $("rollKind").textContent = `노력의 결과 · ${effort.code}`;
@@ -665,7 +744,7 @@
     renderTrialRequirement(trial);
     const reached = trialReached(trial);
     await wait(620);
-    $("rollCondition").textContent = state.stats.vitality <= 0 ? "생명의 불꽃이 꺼졌다" : reached ? "시련 조건 달성" : `조건까지 ${Math.max(0, trial.threshold - trialValue(trial))} 필요`;
+    $("rollCondition").textContent = state.stats.vitality <= 0 ? "생명의 불꽃이 꺼졌다" : reached ? (trialValue(trial) === trial.threshold ? "필요 능력치 도달 · 성공 90% 판정 대기" : "시련 조건 달성") : `조건까지 ${Math.max(0, trial.threshold - trialValue(trial))} 필요`;
     $("rollCondition").className = `roll-condition ${reached ? "met" : "pending"}`;
     $("rollContinue").disabled = false;
     await awaitRollClose();
@@ -799,6 +878,9 @@
       }
     }
     if (state.stats.vitality <= 0) reached = false;
+    const verdict = trialVerdict(reached);
+    reached = verdict.success;
+    if (verdict.unlucky) await showDivineRegret();
     if (reached) {
       const before = state.stats[trial.stat];
       state.stats[trial.stat] += trial.successGain || 0;
@@ -807,7 +889,7 @@
       renderTrialRequirement(trial);
       finishTrial(true, `시련 조건 달성 · ${trial.success}${trial.successGain ? ` · ${trial.statName} ${before} → ${state.stats[trial.stat]}` : ""}`);
     } else {
-      finishTrial(false, `제한 시간 종료 · ${trial.failure}`);
+      finishTrial(false, `${verdict.unlucky ? "뜻밖의 실패 · 동일 능력치의 10% 실패 판정" : "제한 시간 종료"} · ${trial.failure}`);
     }
   }
 
@@ -818,14 +900,16 @@
     const interventionBonus = state.intervention === "whisper" ? 2 : state.intervention === "bless" ? 1 : 0;
     const eventBonus = state.progress.requiresAny?.some(record => state.milestones.includes(record)) ? 1 : 0;
     const score = trialValue(trial) + traitBonus + interventionBonus + eventBonus;
-    let success = score >= trial.threshold;
+    const verdict = trialVerdict(score >= trial.threshold);
+    const success = verdict.success;
+    if (verdict.unlucky) await showDivineRegret();
     $("firstScreen").classList.add("instant-resolve");
     $("firstScreen").classList.remove("hand-visible");
     $("rollKind").textContent = "즉시 시련 · 누적 능력치 판정";
     $("rollTitle").textContent = trial.title;
-    $("rollResult").textContent = `${trial.statName} ${score} / 필요 ${trial.threshold}`;
+    $("rollResult").textContent = `${trial.statName} ${trialValue(trial)} / 필요 ${trial.threshold}${score !== trialValue(trial) && trialValue(trial) < trial.threshold ? ` (보정 후 ${score})` : ""}`;
     $("rollDetail").textContent = success ? trial.success : trial.failure;
-    $("rollCondition").textContent = success ? "시련 조건 달성" : "시련 조건 미달";
+    $("rollCondition").textContent = success ? "시련 조건 달성" : verdict.unlucky ? "뜻밖의 실패 · 동일 능력치의 10% 실패 판정" : "시련 조건 미달";
     $("rollCondition").className = `roll-condition ${success ? "met" : "failed"}`;
     $("rollContinue").disabled = false;
     $("rollOverlay").className = "roll-overlay visible instant";
@@ -872,7 +956,7 @@
   }
 
   function useIntervention(card) {
-    if (card.disabled || state.resolving) return;
+    if (card.disabled || state.resolving || trialReached(state.progress.trial)) return;
     const cost = Number(card.dataset.cost);
     if (state.divine < cost) return;
     state.divine -= cost;
@@ -882,8 +966,16 @@
   }
 
   function resetCardStage() {
+    $("divineRegret").classList.remove("visible");
+    $("divineRegret").setAttribute("aria-hidden", "true");
     const screen = $("firstScreen");
-    screen.classList.remove("hand-visible", "trial-effort", "trial-success", "trial-failure", "instant-resolve", "card-stage-visible", "outcome-visible");
+    screen.classList.remove("hand-visible", "trial-effort", "trial-success", "trial-failure", "instant-resolve", "card-stage-visible", "outcome-visible", "story-visible", "story-with-trial");
+    $("progressStory").setAttribute("aria-hidden", "true");
+    $("progressCard").setAttribute("aria-hidden", "false");
+    $("progressGrowthResult").textContent = "";
+    $("revealTrialButton").disabled = true;
+    state.storyResolver?.();
+    state.storyResolver = null;
     $("progressCard").className = "fate-card progress-card";
     $("trialCard").className = "fate-card trial-card";
     $("effortCard").className = "fate-card effort-card";
@@ -915,6 +1007,7 @@
   }
 
   async function shuffleFateCards(kind, sequence) {
+    window.divineAudio?.play('shuffle');
     const deck = $("shuffleDeck");
     const isTrial = kind === "trial";
     $("shuffleIcon").src = isTrial ? "./assets/icons/trial.png" : "./assets/icons/divine-star.png";
@@ -935,6 +1028,7 @@
   async function revealCards(sequence) {
     resetCardStage();
     fillCards();
+    $("firstScreen").classList.toggle("crisis", Boolean(state.progress?.catastrophe));
     $("childReveal").classList.add("departed");
     await wait(420);
     if (state.progress.catastrophe) await showCatastrophePrelude(sequence);
@@ -948,10 +1042,24 @@
     $("progressCard").classList.add("drawn");
     await wait(850);
     $("progressCard").classList.add("flipped");
-    await wait(Math.max(5200, $("progressText").textContent.length * 45));
+    await wait(2600);
     if (sequence !== state.sequence) return;
+    grantProgressGrowth();
+    await wait(1100);
     $("progressCard").classList.add("archived");
-    await wait(920);
+    $("progressCard").setAttribute("aria-hidden", "true");
+    await wait(1200);
+    $("firstScreen").classList.add("story-visible");
+    $("progressStory").setAttribute("aria-hidden", "false");
+    $("cardScenePhase").textContent = "진행의 이야기";
+    $("cardStageLabel").textContent = "";
+    await wait(600);
+    const storyRead = new Promise(resolve => { state.storyResolver = resolve; });
+    $("revealTrialButton").disabled = false;
+    await storyRead;
+    if (sequence !== state.sequence) return;
+    $("firstScreen").classList.add("story-with-trial");
+    await wait(900);
     $("cardScenePhase").textContent = "다가오는 시련";
     $("cardStageLabel").textContent = `‘${state.progress.title}’의 결과가 ‘${state.progress.trial.title}’이라는 시련을 불러온다.`;
     await shuffleFateCards("trial", sequence);
@@ -964,6 +1072,10 @@
     $("cardScenePhase").textContent = state.progress.trial.mode === "instant" ? "즉시 시련" : `${state.trialTurns}턴 제한 시련`;
     renderHand();
     $("firstScreen").classList.add("hand-visible");
+    if (trialReached(state.progress.trial)) {
+      await wait(800);
+      if (!state.resolving) $("divineHand").classList.add("praise-ready");
+    }
   }
 
   async function transitionStage() {
@@ -1069,6 +1181,13 @@
   }
 
   $("introStartButton").addEventListener("click", action(beginIntro));
+  $("revealTrialButton").addEventListener("click", () => {
+    if (!state.storyResolver) return;
+    $("revealTrialButton").disabled = true;
+    const resolve = state.storyResolver;
+    state.storyResolver = null;
+    resolve();
+  });
   $("introCradleButton").addEventListener("click", action(revealTraits));
   $("introRerollButton").addEventListener("click", rerollTraits);
   $("introBeginButton").addEventListener("click", action(showFirstScreen));
