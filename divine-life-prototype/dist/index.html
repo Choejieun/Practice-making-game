@@ -6,12 +6,13 @@
     <meta name="theme-color" content="#05070c" />
     <meta name="description" content="한 인간의 생애를 관찰하는 다크 판타지 게임 프로토타입" />
     <title>무명신의 기록</title>
-    <link rel="stylesheet" href="./styles.css?v=0.18.0" />
+    <link rel="preload" as="image" href="./assets/icons/cursor-divine-v1.png" />
+    <link rel="stylesheet" href="./styles.css?v=0.18.1" />
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
     <div class="stat-feedback" id="statFeedback" aria-live="polite" aria-label="능력치 성장 알림"></div>
-    <small class="build-version" aria-label="현재 게임 버전">v0.18.0 · 테스트 빌드</small>
+    <small class="build-version" aria-label="현재 게임 버전">v0.18.1 · 테스트 빌드</small>
 
     <main class="intro-screen" id="introScreen">
       <section class="intro-step intro-title-step" id="introTitleStep">
@@ -63,7 +64,7 @@
       <dialog id="helpDialog" class="help-dialog">
         <h2>무명신의 기록</h2>
         <p>진행은 영웅의 성격·의지·경험에 따라 자동으로 정해집니다. 즉시 시련은 현재 능력치를, 제한 시련은 매 턴의 노력을 확인합니다.</p>
-        <p>신성 개입은 한 생애에 5만큼 사용할 수 있습니다. 성격 재추첨도 1을 소모합니다. 누적 개입이 3 이상이면 장년에 재앙이 찾아옵니다.</p>
+        <p>신성 개입은 한 생애에 5만큼 사용할 수 있습니다. 성격 재추첨도 1을 소모합니다. 누적 개입이 3 이상이면 장년 이후 다음 진행에서 재앙이 한 번 찾아옵니다. 마지막 턴에 조건을 채워도 생애가 끝나기 전에 재앙을 마주합니다.</p>
         <p>지켜보기는 계속 사용할 수 있습니다. 표시되는 횟수는 다음 의지 발현까지 남은 관찰 횟수입니다. 10회, 9회, 8회 순으로 줄어들며 최근 지켜본 경험에서 의지가 생깁니다.</p>
         <p>영웅 손잡이는 마우스를 올리거나 클릭해서 펼칩니다. ‘다음 기록’을 눌러 생애를 이어가고, ‘관찰 종료’로 언제든 회상할 수 있습니다.</p>
         <p>서체: 국립박물관문화재단클래식 Light · Medium · Bold<br>제공: 국립박물관문화재단. 서체 원본은 수정하지 않았습니다.</p>
@@ -264,6 +265,6 @@
 
     <script src="./life-content.js?v=life-cycle-2"></script>
     <script src="./audio.js?v=0.18.0"></script>
-    <script src="./game.js?v=0.18.0"></script>
+    <script src="./game.js?v=0.18.1"></script>
   </body>
 </html>

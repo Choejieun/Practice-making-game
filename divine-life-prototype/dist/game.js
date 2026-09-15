@@ -269,11 +269,11 @@
     return new Promise(resolve => {
       let index = 0;
       const write = () => {
-        if (sequence !== state.sequence) return resolve();
+        if (sequence !== state.sequence) { element.classList.add("typed"); return resolve(); }
         element.textContent += text[index] || "";
         index += 1;
         if (index < text.length) setTimeout(write, speed);
-        else resolve();
+        else { element.classList.add("typed"); resolve(); }
       };
       write();
     });
@@ -399,6 +399,7 @@
   const allProgress = [...progressPool.map(card => ({ ...card, stage: "childhood" })), ...laterProgress, ...(window.lifeContent || [])];
   progressPool.find(card => card.id === "P01-C07").trial.alternativeStat = "intuition";
   const currentStage = () => stages[Math.min(state.stageIndex, stages.length - 1)];
+  const catastropheDue = () => ["mature", "elder"].includes(currentStage().key) && state.divineMax - state.divine >= 3 && !state.catastropheSeen;
   const allHeroTags = () => [...state.traits.flatMap(trait => trait.tags), ...state.wills.flatMap(will => will.tags)];
 
   function chooseProgress() {
@@ -424,10 +425,11 @@
     });
     if (stage.key === "elder" && state.roundInStage === stage.turns - 1) candidates = allProgress.filter(card => card.final);
     const forced = allProgress.find(card => card.id === forcedCase && card.stage === stage.key);
-    if (stage.key === "mature") {
-      const shouldFaceCatastrophe = state.divineMax - state.divine >= 3 && !state.catastropheSeen;
-      candidates = candidates.filter(card => shouldFaceCatastrophe ? card.catastrophe : !card.catastrophe);
-    }
+    const pendingCatastrophe = catastropheDue();
+    // Crisis content must not be lost to age, relationship, final-card or stage filters.
+    candidates = pendingCatastrophe
+      ? allProgress.filter(card => card.catastrophe && !state.usedProgress.includes(card.id))
+      : candidates.filter(card => !card.catastrophe);
     if (!candidates.length) candidates = allProgress.filter(card => card.stage === stage.key && !card.catastrophe);
     const weighted = candidates.flatMap(card => {
       let score = 1 + card.weight.filter(tag => tags.includes(tag)).length * 2;
@@ -435,7 +437,7 @@
       if (card.requiresRelationship && state.relationships.length) score += 3;
       return Array(score).fill(card);
     });
-    state.progress = structuredClone(forced && !state.usedProgress.includes(forced.id) ? forced : sample(weighted)[0]);
+    state.progress = structuredClone(!pendingCatastrophe && forced && !state.usedProgress.includes(forced.id) ? forced : sample(weighted)[0]);
     state.progressGrowthApplied = false;
     const memory = state.history.filter(item => state.progress.id.includes("C09") || state.progress.id === "middle-B01" ? !item.success : item.success).at(-1);
     if (["P01-C06", "P01-C09", "middle-B01"].includes(state.progress.id) && memory) {
@@ -1133,6 +1135,12 @@
     state.advancing = true;
     $("nextTurnButton").classList.add("hidden");
     if (state.stats.vitality <= 0) return showEnding();
+    // A final-turn intervention still earns its crisis before age advancement/ending.
+    if (catastropheDue()) {
+      await revealCards(state.sequence);
+      state.advancing = false;
+      return;
+    }
     state.roundInStage += 1;
     if (state.roundInStage >= currentStage().turns) {
       state.stageIndex += 1;
