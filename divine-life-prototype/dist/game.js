@@ -215,7 +215,7 @@
 
   const interventions = [
     { title: "작은 징조", cost: 1, text: "이번 노력의 주사위 결과에 +1을 더한다.", kind: "bless" },
-    { title: "보호의 손길", cost: 2, text: "이번 시련 동안 노력과 실패로 잃는 체력을 보호한다.", kind: "guard" },
+    { title: "보호의 손길", cost: 1, text: "이번 시련 동안 노력과 실패로 잃는 체력을 보호한다.", kind: "guard" },
     { title: "속삭임", cost: 1, text: "성격과 의지의 힘을 판정 또는 첫 노력에 +2로 보탠다.", kind: "whisper" }
   ];
 
@@ -238,8 +238,11 @@
     stats: { vitality: 6, strength: 2, agility: 2, knowledge: 2, intuition: 2, charm: 2 },
     stageIndex: 0,
     roundInStage: 0,
-    divine: 5,
-    divineMax: 5,
+    divine: 0,
+    crisisInterval: 8,
+    nextCrisisAt: 8,
+    crisisCount: 0,
+    world: null,
     watchRemaining: 10,
     usedProgress: [],
     wills: [],
@@ -292,7 +295,13 @@
     state.stageIndex = 0;
     state.roundInStage = 0;
     state.progress = null;
-    state.divine = 5;
+    state.divine = 0;
+    state.nextCrisisAt = state.crisisInterval;
+    state.crisisCount = 0;
+    state.world = window.lifeRules.fresh();
+    state.pendingCrossroad = null;
+    state.crossroadVisible = false;
+    state.outcomeRecorded = false;
     state.watchRemaining = 10;
     state.usedProgress = [];
     state.wills = [];
@@ -380,7 +389,7 @@
   function rerollTraits() {
     if (state.rerolled) return;
     state.rerolled = true;
-    state.divine = Math.max(0, state.divine - 1);
+    state.divine += 1;
     const box = $("introTraits");
     box.classList.add("dissolve");
     $("introRerollButton").disabled = true;
@@ -396,16 +405,16 @@
   }
 
   stages.forEach(stage => { stage.turns = 4; });
-  const allProgress = [...progressPool.map(card => ({ ...card, stage: "childhood" })), ...laterProgress, ...(window.lifeContent || [])];
+  const allProgress = [...progressPool.map(card => ({ ...card, stage: "childhood" })), ...laterProgress.filter(card => !card.catastrophe), ...(window.lifeContent || []), ...window.lifeRules.events];
   progressPool.find(card => card.id === "P01-C07").trial.alternativeStat = "intuition";
   const currentStage = () => stages[Math.min(state.stageIndex, stages.length - 1)];
-  const catastropheDue = () => ["mature", "elder"].includes(currentStage().key) && state.divineMax - state.divine >= 3 && !state.catastropheSeen;
+  const catastropheDue = () => state.divine >= state.nextCrisisAt && !state.pendingCrossroad;
   const allHeroTags = () => [...state.traits.flatMap(trait => trait.tags), ...state.wills.flatMap(will => will.tags)];
 
   function chooseProgress() {
     const stage = currentStage();
     const forcedCase = new URLSearchParams(window.location.search).get("case");
-    let candidates = allProgress.filter(card => card.stage === stage.key && !state.usedProgress.includes(card.id));
+    let candidates = allProgress.filter(card => (card.stage === stage.key || card.stages?.includes(stage.key)) && !state.usedProgress.includes(card.id) && window.lifeRules.eligible(card, state));
     const tags = allHeroTags();
     candidates = candidates.filter(card => !card.id.startsWith("P01") || state.traits.some(trait => trait.name === "완벽주의자"));
     if (stage.key === "childhood") {
@@ -423,22 +432,27 @@
       if (card.final) return state.roundInStage === stage.turns - 1;
       return true;
     });
-    if (stage.key === "elder" && state.roundInStage === stage.turns - 1) candidates = allProgress.filter(card => card.final);
+    if (stage.key === "elder" && state.roundInStage === stage.turns - 1) candidates = allProgress.filter(card => card.final && window.lifeRules.eligible(card, state));
     const forced = allProgress.find(card => card.id === forcedCase && card.stage === stage.key);
     const pendingCatastrophe = catastropheDue();
     // Crisis content must not be lost to age, relationship, final-card or stage filters.
     candidates = pendingCatastrophe
-      ? allProgress.filter(card => card.catastrophe && !state.usedProgress.includes(card.id))
+      ? [window.lifeRules.crisis(state, stage.key)]
       : candidates.filter(card => !card.catastrophe);
-    if (!candidates.length) candidates = allProgress.filter(card => card.stage === stage.key && !card.catastrophe);
+    if (!candidates.length) candidates = allProgress.filter(card => card.stage === stage.key && !card.catastrophe && window.lifeRules.eligible(card, state));
     const weighted = candidates.flatMap(card => {
       let score = 1 + card.weight.filter(tag => tags.includes(tag)).length * 2;
+      if (card.requiresFlag) score += 8;
+      if (card.relationStep) score += state.world.partner ? 5 : 2;
       if (card.requiresAny?.some(record => state.milestones.includes(record))) score += 3;
       if (card.requiresRelationship && state.relationships.length) score += 3;
       return Array(score).fill(card);
     });
     state.progress = structuredClone(!pendingCatastrophe && forced && !state.usedProgress.includes(forced.id) ? forced : sample(weighted)[0]);
+    // Later life should still offer meaningful intervention choices after years of growth.
+    if (!state.progress.catastrophe) state.progress.trial.threshold += Math.max(0, state.stageIndex - 1);
     state.progressGrowthApplied = false;
+    state.outcomeRecorded = false;
     const memory = state.history.filter(item => state.progress.id.includes("C09") || state.progress.id === "middle-B01" ? !item.success : item.success).at(-1);
     if (["P01-C06", "P01-C09", "middle-B01"].includes(state.progress.id) && memory) {
       state.progress.text += ` ‘${memory.trial}’의 경험을 떠올린다.`;
@@ -476,7 +490,8 @@
   }
 
   function renderResources() {
-    $("divineCount").textContent = `${state.divine} / ${state.divineMax}`;
+    $("divineCount").textContent = `누적 ${state.divine}회`;
+    $("crisisCount").textContent = state.progress?.catastrophe && !state.outcomeRecorded ? '재앙 진행 중' : `다음 재앙까지 ${Math.max(0, state.nextCrisisAt - state.divine)}회`;
     $("watchCount").textContent = `의지까지 ${state.watchRemaining}회`;
   }
 
@@ -500,9 +515,11 @@
     const records = [
       ...state.milestones.map(value => `사건 · ${value}`),
       ...state.relationships.map(value => `인연 · ${value}`),
-      ...state.items.map(value => `물품 · ${value}`)
+      ...state.items.map(value => `물품 · ${value}`),
+      ...window.lifeRules.describe(state)
     ];
-    $("heroMilestones").innerHTML = records.length ? records.slice(-7).map(value => `<span>${value}</span>`).join("") : "<span>아직 기록이 없다</span>";
+    $("heroMilestones").innerHTML = records.length ? records.map(value => `<span>${value}</span>`).join("") : "<span>아직 기록이 없다</span>";
+    $("heroWealth").textContent = state.world.home === 'lost' ? '터전을 잃고 피난 중' : state.origin.wealth;
   }
 
   function fillHeroPanel() {
@@ -619,6 +636,7 @@
 
   function fillCards() {
     chooseProgress();
+    renderResources();
     const trial = state.progress.trial;
     renderHud();
     $("cardScenePhase").textContent = `${currentStage().label} · ${state.progress.age || "현재"}`;
@@ -688,9 +706,9 @@
     $("divinePraiseOdds").textContent = sufficient ? (trialValue(state.progress.trial) === state.progress.trial.threshold ? "필요 능력치와 동일 · 성공 90% / 실패 10%" : "필요 능력치 초과 · 스스로 해낼 수 있다") : "";
     $("watchButton").disabled = false;
     $("handCards").innerHTML = interventions.map((card, index) => {
-      const disabled = sufficient || state.divine < card.cost;
+      const disabled = sufficient;
       return `<button class="hand-card" type="button" data-kind="${card.kind}" data-cost="${card.cost}" style="--hand-index:${index}" ${disabled ? "disabled" : ""}>
-        <small>개입 ${card.cost}</small><strong>${card.title}</strong><span>${sufficient ? "영웅의 힘에 맡긴다." : disabled ? "신성 개입이 부족하다." : card.text}</span>
+        <small>누적 개입 +1</small><strong>${card.title}</strong><span>${sufficient ? "영웅의 힘에 맡긴다." : card.text}</span>
       </button>`;
     }).join("");
     $("handCards").querySelectorAll(".hand-card").forEach(card => card.addEventListener("click", action(() => useIntervention(card))));
@@ -771,7 +789,15 @@
   }
 
   function recordOutcome(success) {
+    if (state.outcomeRecorded) return;
+    state.outcomeRecorded = true;
     const trial = state.progress.trial;
+    window.lifeRules.remember(state.progress, success, state);
+    if (state.progress.catastrophe && state.progress.stakes) {
+      state.crisisCount += 1;
+      state.nextCrisisAt += state.crisisInterval;
+      state.pendingCrossroad = window.lifeRules.crossroad(state.progress, success, state);
+    }
     state.history.push({ stage: currentStage().label, title: state.progress.title, trial: trial.title, stat: trial.stat, success });
     if (success) {
       state.outcomeSuccesses += 1;
@@ -787,6 +813,7 @@
     if (memory && !state.milestones.includes(memory)) state.milestones.push(memory);
     renderRecords();
     renderStats();
+    renderResources();
   }
 
   const traitOutcomeVoice = {
@@ -845,7 +872,7 @@
     $("outcomeTags").innerHTML = outcome.tags.map(tag => `<span>${tag}</span>`).join("");
     $("outcomeSummary").setAttribute("aria-hidden", "false");
     state.pendingWill = "";
-    $("nextTurnButton").textContent = state.stats.vitality <= 0 ? "생애를 회상한다" : "다음 기록을 펼친다";
+    $("nextTurnButton").textContent = state.pendingCrossroad ? '인생의 갈림길을 마주한다' : state.stats.vitality <= 0 ? "생애를 회상한다" : "다음 기록을 펼친다";
     $("nextTurnButton").classList.remove("hidden");
   }
 
@@ -959,9 +986,7 @@
 
   function useIntervention(card) {
     if (card.disabled || state.resolving || trialReached(state.progress.trial)) return;
-    const cost = Number(card.dataset.cost);
-    if (state.divine < cost) return;
-    state.divine -= cost;
+    state.divine += 1;
     renderResources();
     card.classList.add("chosen");
     return settleHand(`신의 개입 · ${card.querySelector("strong").textContent}이 시련에 스며든다.`, card.dataset.kind);
@@ -997,7 +1022,7 @@
   async function showCatastrophePrelude(sequence) {
     const curtain = $("catastropheCurtain");
     $("catastropheTitle").textContent = state.progress.title;
-    $("catastropheText").textContent = `${state.progress.text} 지금까지 사용한 신성 개입 ${state.divineMax - state.divine}회가 세계에 거대한 흔적을 남겼다.`;
+    $("catastropheText").textContent = `${state.progress.text} 누적 신성 개입 ${state.divine}회가 세계에 거대한 흔적을 남겼다.`;
     curtain.setAttribute("aria-hidden", "false");
     await wait(80);
     if (sequence !== state.sequence) return;
@@ -1112,6 +1137,10 @@
 
   function showEnding(reason = "completed") {
     if (state.ended) return;
+    if (state.pendingCrossroad) {
+      window.lifeRules.apply(state.pendingCrossroad, state);
+      state.pendingCrossroad = null;
+    }
     state.ended = true;
     state.sequence += 1;
     $("rollOverlay").className = "roll-overlay";
@@ -1120,18 +1149,35 @@
     $("firstScreen").classList.remove("stage-transitioning");
     resetCardStage();
     const success = state.outcomeSuccesses >= state.outcomeFailures;
-    const disconnected = state.divine === 0 && state.catastropheSeen && !success;
+    const disconnected = state.milestones.includes('신과의 연결을 스스로 끊다');
     $("endingTitle").textContent = reason === "observed" ? "신은 시선을 거두었다" : state.stats.vitality <= 0 ? "꺼진 생명의 불꽃" : disconnected ? "끊어진 신의 연결" : success ? "자신의 이름으로 남은 생애" : "미완의 기록";
     $("endingText").textContent = reason === "observed"
       ? `${state.name}의 삶은 신의 시선 밖에서도 계속된다.`
       : `${state.name}은 ${state.outcomeSuccesses}번의 시련을 넘어섰고 ${state.outcomeFailures}번 쓰러졌다. ${state.wills.length ? `마지막까지 ‘${state.wills.map(will => will.name).join(" · ")}’라는 의지를 품었다.` : "끝내 신의 뜻과 자신의 뜻 사이에서 답을 찾았다."}`;
     const highlights = state.history.map(item => `<p><span>${item.stage}</span><strong>${item.success ? "성공" : "실패"} · ${item.trial}</strong></p>`).join("");
-    $("endingRecords").innerHTML = highlights || "<p><strong>아직 기록되지 않은 생애</strong></p>";
+    const crossroads = state.world.crossroads.map(x => `<p><span>인생의 갈림길</span><strong>${x.title}</strong><span>${x.text} ${x.effect}</span></p>`).join('');
+    $("endingRecords").innerHTML = highlights + crossroads || "<p><strong>아직 기록되지 않은 생애</strong></p>";
     $("endingOverlay").classList.add("visible");
   }
 
   async function advanceTurn() {
     if (state.advancing || state.ended) return;
+    if (state.pendingCrossroad) {
+      const result = state.pendingCrossroad;
+      window.lifeRules.apply(result, state);
+      state.pendingCrossroad = null;
+      state.crossroadVisible = true;
+      $("firstScreen").classList.remove('crisis');
+      $("cardScenePhase").textContent = '재앙 이후';
+      $("cardStageLabel").textContent = '이 결말은 이후의 삶과 관계, 진행을 바꾼다.';
+      $("outcomeKind").textContent = '인생의 갈림길';
+      $("outcomeTitle").textContent = result.title;
+      $("outcomeText").textContent = result.text;
+      $("outcomeTags").textContent = result.effect;
+      $("nextTurnButton").textContent = state.stats.vitality <= 0 ? '생애를 회상한다' : '달라진 삶을 이어간다';
+      renderRecords();
+      return;
+    }
     state.advancing = true;
     $("nextTurnButton").classList.add("hidden");
     if (state.stats.vitality <= 0) return showEnding();
@@ -1141,7 +1187,9 @@
       state.advancing = false;
       return;
     }
+    // The interrupted normal turn advances only after its crisis and crossroads.
     state.roundInStage += 1;
+    state.crossroadVisible = false;
     if (state.roundInStage >= currentStage().turns) {
       state.stageIndex += 1;
       state.roundInStage = 0;
