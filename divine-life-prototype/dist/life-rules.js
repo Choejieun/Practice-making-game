@@ -131,7 +131,7 @@ window.lifeRules = (() => {
     ].map(([flag,title,text]) => event(`AFTER-${flag}`,title,text,null,{ requiresFlag: flag },title))
   ];
   function describe(s) {
-    const w = s.world, labels = { friend:'친구',lover:'연인',fiance:'약혼자',spouse:'배우자',dead:'사별한 인연' };
+    const w = s.world, labels = { acquaintance:'지인',friend:'친구',lover:'연인',fiance:'약혼자',spouse:'배우자',dead:'사별한 인연' };
     return [w.partner && `${labels[w.partner.status]} · ${w.partner.name}`, w.children && `자녀 · ${w.children}명`,
       w.vocation && `삶의 길 · ${{knight:'왕국의 기사',healer:'치유자',rebuilder:'재건의 기사',exile:'망국의 기사'}[w.vocation]}`,
       w.home === 'lost' && '재산 · 터전을 잃고 피난 중', ...w.crossroads.map(x => `갈림길 · ${x.title}`)].filter(Boolean);
@@ -222,7 +222,9 @@ window.heroThoughts = (s, phase) => {
     lines=phase==='success'?['아직 끝나지 않았어. 살아남았으니까.','이제 무엇을 지켜야 할까.']:phase==='failure'?['이 대가를 어떻게 잊을 수 있을까.','그래도 남은 사람들을 찾아야 해.']:['이번에는 누가 도와줄까.','내가 지키려던 것은 아직 저 안에 있어.'];
   } else if(p.dungeon) {
     lines=phase==='success'?['바깥 공기가 이렇게 따뜻했구나.','돌아갈 길이 아직 남아 있어.']:phase==='failure'?['지금은 돌아가야 해.','다음에는 이 길을 잊지 않겠어.']:['저 어둠 너머에는 무엇이 있을까.','돌아갈 곳을 남겨 두어야 해.'];
-  } else if(p.trial.stat==='strength') {
+  } else if(p.relationship) {
+    lines=['오래전의 일이 이렇게 돌아오는구나.','무슨 이야기부터 꺼내야 할까.'];
+  } else if(p.trial?.stat==='strength') {
     lines=phase==='success'?(child?['내가 옮겼어. 정말로.','이제 나도 도울 수 있어.']:['손이 떨린다. 그래도 해냈어.','이 힘을 누군가에게 보탤 수 있겠구나.']):phase==='failure'?['아직 내 힘으로는 무리였나 봐.','숨부터 고르자.']:child?['조금만 더 힘을 주면 될까.','나도 해 보고 싶어.']:['발을 단단히 딛자.','이 손을 지금 놓을 수는 없어.'];
   } else if(p.relationStep && s.world?.partner) {
     lines=phase==='success'?['이 마음이 전해졌으면 좋겠어.','혼자가 아니라는 건 이런 기분일까.']:phase==='failure'?['하고 싶은 말은 따로 있었는데.','너무 서둘렀던 걸까.']:['어떤 말부터 꺼내야 할까.','진심을 알아주면 좋겠어.'];
