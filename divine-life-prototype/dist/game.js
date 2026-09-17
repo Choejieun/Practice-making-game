@@ -334,6 +334,8 @@
   }
 
   function resetIntro() {
+    state.regretResolver?.(false);
+    state.regretResolver = null;
     clearThoughts();
     state.sequence += 1;
     state.gender = Math.random() < .5 ? "male" : "female";
@@ -812,12 +814,17 @@
   }
 
   async function showDivineRegret() {
+    const sequence = state.sequence;
     window.divineAudio?.play('regret');
     const lines = ["아… 잘할 수 있었는데.", "조금만 더 닿았더라면.", "안타깝구나. 그래도 네 노력은 보았다.", "이번에는 운명이 야속하구나.", "괜찮다. 이 순간이 네 전부는 아니니."];
     $("divineRegretText").textContent = lines[Math.floor(Math.random() * lines.length)];
+    $("divineRegretResult").textContent = state.progress.trial.failure;
     $("divineRegret").setAttribute("aria-hidden", "false");
     $("divineRegret").classList.add("visible");
-    await wait(2600);
+    const acknowledged = new Promise(resolve => { state.regretResolver = resolve; });
+    $("regretContinue").disabled = false;
+    $("regretContinue").focus?.({ preventScroll: true });
+    if (!await acknowledged || sequence !== state.sequence) throw new Error('sequence-cancelled');
     $("divineRegret").classList.remove("visible");
     await wait(600);
     $("divineRegret").setAttribute("aria-hidden", "true");
@@ -1154,6 +1161,8 @@
   }
 
   function resetCardStage() {
+    state.regretResolver?.(false);
+    state.regretResolver = null;
     clearThoughts();
     $("divineRegret").classList.remove("visible");
     $("divineRegret").setAttribute("aria-hidden", "true");
@@ -1440,6 +1449,13 @@
     const resolve = state.effortResolver;
     state.effortResolver = null;
     resolve();
+  });
+  $("regretContinue").addEventListener("click", () => {
+    if (!state.regretResolver) return;
+    const resolve = state.regretResolver;
+    state.regretResolver = null;
+    $("regretContinue").disabled = true;
+    resolve(true);
   });
   $("rollContinue").addEventListener("click", () => {
     if (!state.rollResolver) return;

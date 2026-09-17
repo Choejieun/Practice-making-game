@@ -7,7 +7,7 @@
     <meta name="description" content="한 인간의 생애를 관찰하는 다크 판타지 게임 프로토타입" />
     <title>무명신의 기록</title>
     <link rel="preload" as="image" href="./assets/icons/cursor-divine-v1.png" />
-    <link rel="stylesheet" href="./styles.css?v=1.0.2" />
+    <link rel="stylesheet" href="./styles.css?v=1.0.2-ui1" />
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
@@ -230,9 +230,11 @@
 
       <section class="divine-regret" id="divineRegret" aria-hidden="true" role="status">
         <img src="./assets/icons/main-emblem.png" alt="" />
-        <small>신의 짧은 탄식</small>
+        <small>뜻밖의 실패 · 신의 탄식</small>
         <p id="divineRegretText"></p>
+        <span id="divineRegretResult"></span>
         <span>충분해 보였던 순간에도, 운명은 어긋난다.</span>
+        <button id="regretContinue" type="button">결과를 확인한다</button>
       </section>
       <div class="roll-overlay" id="rollOverlay" aria-hidden="true">
         <section class="roll-popup" role="dialog" aria-modal="true" aria-labelledby="rollTitle">
@@ -284,6 +286,6 @@
     <script src="./audio.js?v=0.18.0"></script>
     <script src="./life-rules.js?v=1.0.2"></script>
     <script src="./heroic-content.js?v=1.0.2"></script>
-    <script src="./game.js?v=1.0.2"></script>
+    <script src="./game.js?v=1.0.2-ui1"></script>
   </body>
 </html>

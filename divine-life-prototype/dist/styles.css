@@ -404,6 +404,10 @@ button:focus-visible { outline: 1px solid var(--gold-pale); outline-offset: 4px;
 .divine-regret small { color: var(--gold); font-size: .95rem; letter-spacing: .12em; }
 .divine-regret p { margin: 12px 0; color: var(--ink); font-size: clamp(1.25rem, 3vw, 1.8rem); line-height: 1.7; }
 .divine-regret span { color: var(--muted); font-size: .95rem; line-height: 1.6; }
+.divine-regret { overflow-y: auto; }
+.divine-regret #divineRegretResult { max-width: 580px; color: var(--ink); word-break: keep-all; overflow-wrap: anywhere; }
+.divine-regret button { margin-top: 12px; padding: 12px 24px; min-height: 44px; border: 1px solid var(--line-gold); background: #10151d; color: var(--gold-pale); font: inherit; font-size: max(10pt, 1rem); }
+.divine-regret button:focus-visible { outline: 2px solid var(--gold-pale); outline-offset: 4px; }
 @keyframes divine-sigh { 0% { filter: brightness(1.3); transform: translateY(-12px); } 65%, 100% { filter: brightness(.48) saturate(.5); transform: translateY(6px); } }
 .watch-button { margin-top: 5px; border: 0; border-bottom: 1px solid var(--line-gold); color: var(--muted); background: rgba(3,5,8,.7); padding: 7px 12px; cursor: pointer; font-size: .84rem; }
 .watch-button:hover { color: var(--gold-pale); }
@@ -799,4 +803,45 @@ button:focus-visible { outline: 1px solid var(--gold-pale); outline-offset: 4px;
   .progress-card.archived { visibility: hidden; }
   .hand-visible .trial-card.flipped { transform: translate3d(-50%, calc(-50% - 205px), 0) rotateY(180deg); }
   .outcome-summary { top: 50%; padding: 24px 20px; }
+}
+
+/* Desktop play area follows the viewport, not a fixed 1120px document. */
+@media (min-width: 1000px) and (min-height: 600px) {
+  .first-screen, .first-screen:has(.oracle-card) { height: 100svh; min-height: 0; }
+  .first-screen .card-stage { inset: 80px 54px 62px; }
+  .card-scene-heading { min-height: 46px; gap: 3px; }
+  .card-scene-heading h2 { font-size: clamp(20px, 2vw, 27px); }
+  .card-stage-label { min-height: 0; margin: 4px auto; max-width: 760px; }
+  .first-screen .card-table { position: absolute; top: 68px; bottom: 0; left: 0; right: 0; height: auto; }
+  .first-screen.hand-visible .card-table { bottom: 280px; }
+  .story-visible .progress-story { top: 12px; transform: translate(-50%, 0); width: min(690px, 70vw); max-height: calc(100% - 24px); overflow-y: auto; }
+  .progress-story > p:not(.progress-growth) { margin: 12px 0; line-height: 1.85; }
+  .progress-story .progress-growth { margin: 12px 0; }
+  .first-screen.story-with-trial.hand-visible .progress-story { display: block; top: 50%; left: calc(50% - 215px); width: min(440px, 38vw); transform: translate(-50%, -50%); max-height: 100%; }
+  .first-screen .trial-card { width: 340px; height: min(390px, 100%); }
+  .first-screen.story-with-trial.hand-visible .trial-card.flipped { top: 50%; left: calc(50% + 235px); transform: translate3d(-50%, -50%, 0) rotateY(180deg); }
+  .trial-card .card-front { display: grid; grid-template-columns: minmax(0,1fr) 60px; grid-template-rows: auto auto auto auto 1fr; gap: 7px; padding: 16px 18px; }
+  .trial-card .card-front > small, .trial-card .card-front > h3, .trial-card .card-front > p, .trial-card .card-front > footer { grid-column: 1 / -1; }
+  .trial-card .card-front h3 { margin: 2px 0; font-size: 20px; }
+  .trial-card .card-front > p { font-size: 14px; line-height: 1.5; }
+  .trial-requirement { margin: 0; }
+  .trial-clock { margin: 0; align-content: center; }
+  .trial-clock span { font-size: 10pt; letter-spacing: 1px; }
+  .trial-card .card-front footer { align-self: end; padding: 7px 0 0; font-size: 10pt; }
+  .first-screen .divine-hand { bottom: 82px; left: 32px; right: 32px; }
+  .divine-hand > p { margin-bottom: 3px; padding: 2px 12px; font-size: 10pt; }
+  .hand-cards:has(.oracle-card) { height: 224px; padding: 8px 10px 0; overflow: visible; justify-content: center; }
+  .hand-card.oracle-card { width: 160px; flex-basis: 160px; height: 210px; padding: 9px; margin: 0 -5px; }
+  .hand-card.oracle-card strong { margin: 6px 0; font-size: 15px; }
+  .hand-card.oracle-card span { font-size: 10pt; line-height: 1.45; }
+  .hand-card.oracle-card b { padding-top: 5px; font-size: 10pt; }
+  .hand-card.oracle-card em { font-size: 10pt; line-height: 1.3; }
+  .first-screen .effort-card { height: min(458px, 100%); }
+  .effort-card .card-front { overflow-y: auto; }
+  .outcome-summary { top: 47%; max-height: calc(100% - 130px); overflow-y: auto; padding: 20px 28px; }
+  .outcome-summary h3 { margin: 10px 0; }
+  .outcome-summary > div { margin-top: 12px; }
+  .next-turn { bottom: 3px; }
+  .timeline-docked .first-life-timeline { top: calc(100% - 36px); padding-bottom: 8px; }
+  .dungeon-handle { top: 82px; }
 }
