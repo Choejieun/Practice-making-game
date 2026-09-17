@@ -6,6 +6,36 @@
     const sequence = state.sequence;
     return new Promise((resolve, reject) => setTimeout(() => sequence === state.sequence ? resolve() : reject(new Error("sequence-cancelled")), ms));
   };
+  let thoughtEnabled = true, thoughtGeneration = 0;
+  const thoughtTimers = new Set();
+  function clearThoughts() {
+    thoughtGeneration++;
+    thoughtTimers.forEach(clearTimeout);thoughtTimers.clear();
+    $('heroThoughtLayer').innerHTML='';
+  }
+  function showThoughts(phase) {
+    clearThoughts();
+    if(!thoughtEnabled || state.ended)return;
+    const generation=thoughtGeneration;
+    const lines=window.heroThoughts(state,phase);
+    lines.forEach((text,index)=>{
+      const timer=setTimeout(()=>{
+        if(generation!==thoughtGeneration || state.ended)return;
+        requestAnimationFrame(()=>{
+          if(generation!==thoughtGeneration)return;
+          const layer=$('heroThoughtLayer'),node=document.createElement('p');
+          node.className='hero-thought';node.textContent=text;layer.append(node);
+          const w=node.offsetWidth,h=node.offsetHeight;
+          const slots=[[16,innerHeight*.28],[innerWidth-w-16,innerHeight*.35],[16,innerHeight*.58],[innerWidth-w-16,innerHeight*.62],[innerWidth*.5-w*.5,innerHeight*.22]];
+          const blockers=[...document.querySelectorAll('.hero-thought, .fate-card, .progress-story, .divine-hand, .first-life-timeline, .persistent-hero-hud, .divine-resources, .card-scene-heading, .outcome-summary, button, dialog[open], .hero-panel')].filter(el=>el!==node && getComputedStyle(el).visibility!=='hidden' && Number(getComputedStyle(el).opacity)>.1 && el.getClientRects().length).map(el=>el.getBoundingClientRect());
+          const safe=slots.filter(([x,y])=>x>=0 && y>=100 && x+w<=innerWidth && y+h<innerHeight-115 && !blockers.some(b=>x<b.right+16 && x+w>b.left-16 && y<b.bottom+16 && y+h>b.top-16));
+          if(!safe.length){node.remove();return;}
+          const [x,y]=safe[Math.floor(Math.random()*safe.length)];node.style.left=x+'px';node.style.top=y+'px';
+          node.addEventListener('animationend',()=>node.remove(),{once:true});
+        });
+      },1000+index*6000);thoughtTimers.add(timer);
+    });
+  }
   const action = fn => (...args) => Promise.resolve(fn(...args)).catch(error => {
     if (error.message !== "sequence-cancelled") throw error;
   });
@@ -225,8 +255,29 @@
     { key: "agility", label: "민첩", color: "#7f9d87", max: 10 },
     { key: "knowledge", label: "지식", color: "#7b9eaa", max: 10 },
     { key: "intuition", label: "직감", color: "#c4a66d", max: 10 },
-    { key: "charm", label: "매력", color: "#a4879f", max: 10 }
+    { key: "charm", label: "매력", color: "#a4879f", max: 10 },
+    { key: 'luck', label: '행운', color: '#bba86d', max: 10 }
   ];
+
+  // Share the hero-panel palette without injecting unescaped narrative text.
+  function statMarkup(text) {
+    const escaped = String(text).replace(/[&<>"']/g, character => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[character]));
+    return escaped.replace(/체력|근력|민첩|지식|직감|매력|행운/g, label => {
+      const meta = statMeta.find(stat => stat.label === label);
+      return '<span class="stat-term" data-stat="' + meta.key + '" style="color:' + meta.color + '">' + label + '</span>';
+    });
+  }
+
+  function setStatText(id, text) {
+    $(id).innerHTML = statMarkup(text);
+  }
+
+  const hostileInterventions = [
+    {title:'불길한 징조',cost:1,kind:'hinder',text:'첫 노력 결과 −2 (최소 0). 즉시 판정은 −2.'},
+    {title:'무거운 운명',cost:1,kind:'drain',text:'이번 시련의 유효 능력치 −2. 실제 능력치는 잃지 않는다.'},
+    {title:'흐려진 길',cost:1,kind:'curse',text:'모든 노력 결과 −1 (최소 0). 즉시 판정은 −1.'}
+  ];
+  const isHostile = kind => hostileInterventions.some(x => x.kind === kind);
 
   const state = {
     gender: "male",
@@ -283,6 +334,7 @@
   }
 
   function resetIntro() {
+    clearThoughts();
     state.sequence += 1;
     state.gender = Math.random() < .5 ? "male" : "female";
     state.name = sample(heroNames[state.gender])[0];
@@ -290,6 +342,8 @@
     state.origin = sample(origins)[0];
     state.rerolled = false;
     state.stats = { vitality: 6, strength: 2, agility: 2, knowledge: 2, intuition: 2, charm: 2 };
+    state.stats.luck=1+Math.floor(Math.random()*9);
+    state.oracleDeck=window.oracleRules.fresh(state.stats.luck);state.hand=null;state.oracleModifier=null;state.handUsed=false;
     state.shownStats = null;
     $("statFeedback").innerHTML = "";
     state.stageIndex = 0;
@@ -299,6 +353,8 @@
     state.nextCrisisAt = state.crisisInterval;
     state.crisisCount = 0;
     state.world = window.lifeRules.fresh();
+    state.realm = window.dungeonRules.fresh();
+    state.hostileHand = false;
     state.pendingCrossroad = null;
     state.crossroadVisible = false;
     state.outcomeRecorded = false;
@@ -408,10 +464,12 @@
   const allProgress = [...progressPool.map(card => ({ ...card, stage: "childhood" })), ...laterProgress.filter(card => !card.catastrophe), ...(window.lifeContent || []), ...window.lifeRules.events];
   progressPool.find(card => card.id === "P01-C07").trial.alternativeStat = "intuition";
   const currentStage = () => stages[Math.min(state.stageIndex, stages.length - 1)];
-  const catastropheDue = () => state.divine >= state.nextCrisisAt && !state.pendingCrossroad;
+  const catastropheDue = () => state.divine + state.realm.pressure >= state.nextCrisisAt && !state.pendingCrossroad;
   const allHeroTags = () => [...state.traits.flatMap(trait => trait.tags), ...state.wills.flatMap(will => will.tags)];
 
   function chooseProgress() {
+    if(state.hand)state.oracleDeck.discard.push(...state.hand);
+    state.hand=null;state.handUsed=false;state.oracleModifier=null;
     const stage = currentStage();
     const forcedCase = new URLSearchParams(window.location.search).get("case");
     let candidates = allProgress.filter(card => (card.stage === stage.key || card.stages?.includes(stage.key)) && !state.usedProgress.includes(card.id) && window.lifeRules.eligible(card, state));
@@ -448,14 +506,16 @@
       if (card.requiresRelationship && state.relationships.length) score += 3;
       return Array(score).fill(card);
     });
-    state.progress = structuredClone(!pendingCatastrophe && forced && !state.usedProgress.includes(forced.id) ? forced : sample(weighted)[0]);
-    // Later life should still offer meaningful intervention choices after years of growth.
-    if (!state.progress.catastrophe) state.progress.trial.threshold += Math.max(0, state.stageIndex - 1);
+    state.intervention = 'watch';
+    state.hostileHand = false;
+    const dungeon = !pendingCatastrophe && window.dungeonRules.willing(state);
+    state.progress = structuredClone(dungeon ? window.dungeonRules.card(state) : !pendingCatastrophe && forced && !state.usedProgress.includes(forced.id) ? forced : sample(weighted)[0]);
+    balanceTrial(state.progress.trial, state.stageIndex, state.roundInStage, state.progress.catastrophe || state.progress.dungeon);
     state.progressGrowthApplied = false;
     state.outcomeRecorded = false;
     const memory = state.history.filter(item => state.progress.id.includes("C09") || state.progress.id === "middle-B01" ? !item.success : item.success).at(-1);
     if (["P01-C06", "P01-C09", "middle-B01"].includes(state.progress.id) && memory) {
-      state.progress.text += ` ‘${memory.trial}’의 경험을 떠올린다.`;
+      state.progress.memoryContext = memory;
       if (["P01-C06", "P01-C09"].includes(state.progress.id)) {
         const stat = memory.stat;
         const statName = statMeta.find(meta => meta.key === stat).label;
@@ -468,6 +528,22 @@
     state.usedProgress.push(state.progress.id);
     state.trialTurns = state.progress.trial.mode === "turn" ? state.progress.trial.base : 0;
     if (state.progress.catastrophe) state.catastropheSeen = true;
+  }
+
+  // Fixed age-based targets, not targets that chase the hero's current stats.
+  // Childhood content and capped health checks keep their authored requirements.
+  function balanceTrial(trial, stageIndex, roundInStage, catastrophe = false) {
+    if (catastrophe || stageIndex === 0 || trial.stat === 'vitality') return;
+    const stage = Math.min(5, Math.max(1, stageIndex));
+    const round = Math.min(3, Math.max(0, roundInStage));
+    const base = [0, 6, 10, 12, 14, 16][stage];
+    const authoredBaseline = [0, 5, 7, 8, 9, 9][stage];
+    const variation = Math.max(-1, Math.min(2, trial.threshold - authoredBaseline));
+    const timeBonus = trial.mode === 'turn' && trial.base === 3 ? 2 : 0;
+    const instantDiscount = trial.mode === 'instant' ? 3 : 0;
+    // Social events are frequent and accumulate charm much faster than other paths.
+    const socialDemand = stage >= 2 && trial.stat === 'charm' ? 5 : 0;
+    trial.threshold = Math.max(trial.threshold, base + variation + round * (stage === 1 ? 1 : 2) + timeBonus + socialDemand - instantDiscount);
   }
 
   async function appendRecord(label, value, sequence) {
@@ -489,9 +565,35 @@
     document.querySelector(".first-progress-line i").style.width = `${progress}%`;
   }
 
+  function canCreateDungeon() {
+    const decisionWindow = state.outcomeRecorded || (state.hand && !state.handUsed && !state.resolving);
+    return Boolean(state.progress && decisionWindow && !state.ended && state.stats.vitality > 0 && !state.realm.active && !state.pendingCrossroad && !state.progress.catastrophe && !state.advancing);
+  }
+
+  function renderDungeon() {
+    const r=state.realm;if(!r)return;
+    $('dungeonButton').textContent = `던전${r.active ? ' 발생' : ''} · 황폐 ${r.ruin}`;
+    const d=r.active;
+    setStatText('dungeonStatus', d ? `${d.name} · 필요 ${d.label} ${d.threshold} · 3턴 시련 · 미토벌 ${d.age}회 진행 · 토벌 시도 ${d.attempts}회` : '열린 던전이 없습니다.');
+    $('dungeonWorld').textContent = `황폐도 ${r.ruin} · 누적 재앙 압력 ${r.pressure}. 미토벌 던전은 일반 진행 2회마다 각각 +1. 토벌 성공은 황폐도 −2, 쌓인 재앙 압력은 남습니다.`;
+    $('dungeonHint').textContent = d ? (state.stats.vitality<=2 ? '영웅의 체력이 낮아 지금은 토벌에 나설 수 없습니다.' : '영웅이 성격·의지·준비 상태와 황폐도를 살펴 다음 진행에서 토벌 여부를 결정합니다.') : '일반 시련의 결과 화면에서 던전을 열 수 있습니다. 생성 자체는 신성 개입 +1이며, 토벌은 영웅의 선택입니다.';
+    if (!d) $('dungeonHint').textContent = canCreateDungeon()
+      ? '던전을 발생시킬 수 있습니다. 신성 개입 +1. 현재 시련은 그대로 진행되며, 다음 기록부터 영웅이 토벌 여부를 결정합니다.'
+      : state.progress?.catastrophe ? '재앙이 끝난 뒤 던전을 발생시킬 수 있습니다.'
+      : state.pendingCrossroad ? '인생의 갈림길을 확인한 뒤 던전을 발생시킬 수 있습니다.'
+      : '카드를 모두 뽑은 뒤 신탁을 선택하기 전, 또는 일반 시련의 결과 화면에서 던전을 발생시킬 수 있습니다.';
+    document.querySelectorAll('[data-dungeon]').forEach(button=>{button.disabled=!canCreateDungeon();button.innerHTML=statMarkup(button.textContent);});
+  }
+
+  function createDungeon(type) {
+    if(!canCreateDungeon() || !window.dungeonRules.create(state,type))return;
+    state.divine++; renderResources();
+  }
+
   function renderResources() {
     $("divineCount").textContent = `누적 ${state.divine}회`;
-    $("crisisCount").textContent = state.progress?.catastrophe && !state.outcomeRecorded ? '재앙 진행 중' : `다음 재앙까지 ${Math.max(0, state.nextCrisisAt - state.divine)}회`;
+    $("crisisCount").textContent = state.progress?.catastrophe && !state.outcomeRecorded ? '재앙 진행 중' : `재앙까지 ${Math.max(0, state.nextCrisisAt - state.divine - state.realm.pressure)} · 침식 ${state.realm.pressure}`;
+    renderDungeon();
     $("watchCount").textContent = `의지까지 ${state.watchRemaining}회`;
   }
 
@@ -602,17 +704,24 @@
 
   function composeProgressStory() {
     const progress = state.progress;
-    const trial = progress.trial;
-    const source = relevantHeroSource(progress);
-    const actor = state.name;
-    const previous = state.history.at(-1);
-    const memory = previous ? `지난 ‘${previous.trial}’의 ${previous.success ? "성공" : "실패"}를 떠올린다.` : `${state.origin.parent}의 ${state.gender === "male" ? "아들" : "딸"}이다.`;
-    const bridge = progress.catastrophe
-      ? `평생 쌓은 ${trial.statName}과 의지로 재앙에 맞서야 한다.`
-      : trial.mode === "instant"
-        ? `이제 쌓아 온 ${trial.statName}이 시험받는다.`
-        : `남은 ${state.trialTurns}번의 노력으로 ${trial.statName}을 길러야 한다.`;
-    return `${progress.text} ${withParticle(actor, "은", "는")} ${memory} ‘${source.name}’${state.wills.includes(source) ? "이라는 의지가" : "의 기질이"} 이끄는 걸음을 멈추지 않는다. ${bridge}`;
+    const story = progress.story || window.progressStories?.[progress.id];
+    return (story || (progress.catastrophe ? progress.text : `${progress.text} ${progress.trial.text}`)).replaceAll('{hero}', state.name);
+  }
+
+  function renderProgressContext() {
+    const p = state.progress;
+    // Only show actual selection influences; unrelated last events are not causes.
+    const keywords = [currentStage().label,
+      ...[...state.traits, ...state.wills].filter(x => x.tags.some(tag => p.weight.includes(tag))).map(x => x.name),
+      ...(p.memoryContext ? [p.memoryContext.success ? '지난 성취' : '남겨진 실패'] : []),
+      ...(p.requiresAny || []).filter(x => state.milestones.includes(x)),
+      ...(p.relationStep && state.world.partner ? [state.world.partner.name] : []),
+      ...(p.requiresFlag ? ['재앙 이후의 삶'] : [])];
+    const node = $('progressContext');
+    node.innerHTML = '';
+    [...new Set(keywords)].slice(0, 5).forEach(text => {
+      const span = document.createElement('span'); span.textContent = text; node.append(span);
+    });
   }
 
   function progressGrowth() {
@@ -626,10 +735,10 @@
     const { stat, statName, amount } = progressGrowth();
     const before = state.stats[stat];
     state.stats[stat] += amount;
-    $("progressGrowthResult").textContent = amount
+    setStatText("progressGrowthResult", amount
       ? `진행의 기본 성장 · ${statName} +${amount} (${before} → ${state.stats[stat]})`
-      : `진행의 기본 성장 · ${statName} 최대치 유지`;
-    $("progressEffect").textContent = amount ? `기본 성장 적용 · ${statName} +${amount}` : `${statName} 최대치 유지`;
+      : `진행의 기본 성장 · ${statName} 최대치 유지`);
+    setStatText("progressEffect", amount ? `기본 성장 적용 · ${statName} +${amount}` : `${statName} 최대치 유지`);
     animateStat(stat);
     renderTrialRequirement(state.progress.trial);
   }
@@ -644,8 +753,9 @@
     $("progressTitle").textContent = state.progress.title;
     $("progressText").textContent = state.progress.text.split(/(?<=[.!?])\s/)[0];
     const growth = progressGrowth();
-    $("progressEffect").textContent = growth.amount ? `기본 성장 · ${growth.statName} +${growth.amount} 보장` : `${growth.statName} 최대치 유지`;
+    setStatText("progressEffect", growth.amount ? `기본 성장 · ${growth.statName} +${growth.amount} 보장` : `${growth.statName} 최대치 유지`);
     $("progressStoryText").textContent = composeProgressStory();
+    renderProgressContext();
     $("trialTitle").textContent = trial.title;
     $("trialText").textContent = trial.text;
     renderTrialRequirement(trial);
@@ -661,14 +771,18 @@
   }
 
   function renderTrialRequirement(trial) {
+    const describe=stat=>{
+      const amount=state.oracleModifier?.stat===stat?state.oracleModifier.amount:0;
+      return amount?`${state.stats[stat]} ${amount>0?'+':''}${amount} = ${Math.max(0,state.stats[stat]+amount)}`:String(state.stats[stat]);
+    };
     if (trial.alternativeStat) {
       const alternativeName = statMeta.find(stat => stat.key === trial.alternativeStat)?.label || "대체 능력";
-      $("trialRequiredStat").textContent = `${trial.statName} 또는 ${alternativeName} ${trial.threshold}`;
-      $("trialCurrentStat").textContent = `${trial.statName} ${state.stats[trial.stat]} · ${alternativeName} ${state.stats[trial.alternativeStat]}`;
+      setStatText("trialRequiredStat", `${trial.statName} 또는 ${alternativeName} ${trial.threshold}`);
+      setStatText("trialCurrentStat", `${trial.statName} ${describe(trial.stat)} · ${alternativeName} ${describe(trial.alternativeStat)}`);
       return;
     }
-    $("trialRequiredStat").textContent = `${trial.statName} ${trial.threshold}`;
-    $("trialCurrentStat").textContent = `${trial.statName} ${state.stats[trial.stat]}`;
+    setStatText("trialRequiredStat", `${trial.statName} ${trial.threshold}`);
+    setStatText("trialCurrentStat", `${trial.statName} ${describe(trial.stat)}`);
   }
 
   const praiseLines = [
@@ -699,19 +813,25 @@
   }
 
   function renderHand() {
-    const sufficient = trialReached(state.progress.trial);
-    $("divineHand").classList.toggle("self-sufficient", sufficient);
-    $("watchButton").textContent = sufficient ? "지켜보기" : "개입하지 않고 지켜본다";
-    $("divinePraiseText").textContent = sufficient ? praiseLines[Math.floor(Math.random() * praiseLines.length)] : "";
-    $("divinePraiseOdds").textContent = sufficient ? (trialValue(state.progress.trial) === state.progress.trial.threshold ? "필요 능력치와 동일 · 성공 90% / 실패 10%" : "필요 능력치 초과 · 스스로 해낼 수 있다") : "";
-    $("watchButton").disabled = false;
-    $("handCards").innerHTML = interventions.map((card, index) => {
-      const disabled = sufficient;
-      return `<button class="hand-card" type="button" data-kind="${card.kind}" data-cost="${card.cost}" style="--hand-index:${index}" ${disabled ? "disabled" : ""}>
-        <small>누적 개입 +1</small><strong>${card.title}</strong><span>${sufficient ? "영웅의 힘에 맡긴다." : card.text}</span>
-      </button>`;
-    }).join("");
-    $("handCards").querySelectorAll(".hand-card").forEach(card => card.addEventListener("click", action(() => useIntervention(card))));
+    $('divineHand').classList.remove('self-sufficient','praise-ready');
+    if(state.progress.catastrophe){$('handCards').innerHTML='';return;}
+    if(!state.hand)state.hand=window.oracleRules.draw(state.oracleDeck,state.stats.luck);
+    setStatText("handSummary", `행운 ${state.stats.luck}/10 · 뽑을 카드 ${state.oracleDeck.draw.length} · 버린 카드 ${state.oracleDeck.discard.length} · 한 장 선택`);
+    $('handCards').innerHTML=state.hand.map((card,index)=>{
+      const effect=card.kind==='watch'?'개입 없음 · 관찰 +1':`${card.label} ${card.modifier>0?'+':''}${card.modifier} 보정 · 개입 +1`;
+      const unrelated=card.kind!=='watch' && ![state.progress.trial.stat,state.progress.trial.alternativeStat].includes(card.stat);
+      return `<button class="hand-card oracle-card ${card.kind==='watch'?'watch-card':card.modifier<0?'harsh':''}" type="button" data-hand="${index}" style="--hand-index:${index}"><small>${card.kind==='watch'?'관찰':card.modifier>0?'가호':'가혹한 신탁'}</small><strong>${card.title}</strong><span>${card.text}</span><b>${statMarkup(effect)}</b>${unrelated?'<em>이 시련의 판정에는 영향 없음</em>':''}</button>`;
+    }).join('');
+    $('handCards').querySelectorAll('[data-hand]').forEach(button=>button.addEventListener('click',action(()=>useOracleCard(Number(button.dataset.hand)))));
+  }
+
+  function useOracleCard(index) {
+    if(state.resolving || state.ended || state.handUsed || state.progress?.catastrophe || !Number.isInteger(index))return;
+    const card=state.hand?.[index];if(!card)return;
+    state.handUsed=true;
+    if(card.kind!=='watch'){state.oracleModifier={stat:card.stat,amount:card.modifier};state.divine++;}
+    renderResources();renderTrialRequirement(state.progress.trial);
+    return settleHand(card.kind==='watch'?'신은 손을 거두었다.':`${card.title} · ${card.label} ${card.modifier>0?'+':''}${card.modifier} 보정`,card.kind==='watch'?'watch':'oracle');
   }
 
   function awaitEffortClick() {
@@ -724,13 +844,14 @@
   }
 
   async function showEffortRoll(effort, trial) {
+    clearThoughts();
     window.divineAudio?.play('dice');
     const popup = $("rollOverlay");
     const die = $("statDie");
     $("rollKind").textContent = `노력의 결과 · ${effort.code}`;
     $("rollTitle").textContent = "운명의 주사위";
-    $("rollResult").textContent = `${effort.statName} +${effort.min}~${effort.max}`;
-    $("rollDetail").textContent = "반복한 노력의 결과를 기다린다.";
+    setStatText("rollResult", `${effort.statName} +${effort.min}~${effort.max}`);
+    setStatText("rollDetail", "반복한 노력의 결과를 기다린다.");
     $("rollCondition").textContent = "";
     $("rollContinue").disabled = true;
     popup.className = "roll-overlay visible rolling";
@@ -746,8 +867,11 @@
     state.nextEffortBonus = effort.nextBonus || 0;
     if (!state.interventionBonusUsed && state.intervention === "bless") gain += 1;
     if (!state.interventionBonusUsed && state.intervention === "whisper") gain += 2;
+    if (!state.interventionBonusUsed && state.intervention === 'hinder') gain -= 2;
+    if (state.intervention === 'curse') gain -= 1;
     state.interventionBonusUsed = true;
     if (state.progress.requiresRelationship && state.relationships.length) gain += 1;
+    gain = Math.max(0, gain);
     const before = state.stats[effort.stat];
     state.stats[effort.stat] = effort.stat === "vitality" ? Math.min(12, before + gain) : before + gain;
     const cost = effort.vitalityCost || (effort.vitalityCostOnZero && gain === 0 ? effort.vitalityCostOnZero : 0);
@@ -758,8 +882,8 @@
     die.textContent = String(gain);
     popup.classList.remove("rolling");
     await wait(350);
-    $("rollResult").textContent = `${effort.statName} +${gain}`;
-    $("rollDetail").textContent = `${effort.statName} ${before} → ${state.stats[effort.stat]}`;
+    setStatText("rollResult", `${effort.statName} +${gain}`);
+    setStatText("rollDetail", `${effort.statName} ${before} → ${state.stats[effort.stat]}`);
     animateStat(effort.stat);
     renderTrialRequirement(trial);
     const reached = trialReached(trial);
@@ -771,7 +895,10 @@
     return reached && state.stats.vitality > 0;
   }
 
-  const trialValue = trial => trial.alternativeStat ? Math.max(state.stats[trial.stat], state.stats[trial.alternativeStat]) : state.stats[trial.stat];
+  const trialValue = trial => {
+    const value=stat=>Math.max(0,state.stats[stat]+(state.oracleModifier?.stat===stat?state.oracleModifier.amount:0));
+    return trial.alternativeStat?Math.max(value(trial.stat),value(trial.alternativeStat)):value(trial.stat);
+  };
   const trialReached = trial => trialValue(trial) >= trial.threshold;
 
   function setEffortCard(effort, trial, turnIndex) {
@@ -779,13 +906,13 @@
     $("effortCode").textContent = effort.code;
     $("effortChallenge").textContent = trial.text;
     $("effortTime").textContent = Array.from({ length: state.trialTurns }, (_, index) => index < remaining ? "●" : "○").join("");
-    $("effortNeedLabel").textContent = trial.alternativeStat ? "직감 또는 지식" : `필요 ${trial.statName}`;
+    setStatText("effortNeedLabel", trial.alternativeStat ? "직감 또는 지식" : `필요 ${trial.statName}`);
     $("effortNeed").textContent = String(trial.threshold);
-    $("effortCurrentLabel").textContent = trial.alternativeStat ? "현재 높은 능력" : `현재 ${trial.statName}`;
+    setStatText("effortCurrentLabel", trial.alternativeStat ? "현재 높은 능력" : `현재 ${trial.statName}`);
     $("effortCurrent").textContent = String(trialValue(trial));
     $("effortTitle").textContent = effort.title;
     $("effortText").textContent = effort.text;
-    $("effortRange").textContent = `주사위 · ${effort.statName} +${effort.min}~${effort.max}`;
+    setStatText("effortRange", `주사위 · ${effort.statName} +${effort.min}~${effort.max}`);
   }
 
   function recordOutcome(success) {
@@ -793,6 +920,8 @@
     state.outcomeRecorded = true;
     const trial = state.progress.trial;
     window.lifeRules.remember(state.progress, success, state);
+    if (state.progress.dungeon) window.dungeonRules.resolve(state,success);
+    else if (!state.progress.catastrophe) window.dungeonRules.tick(state);
     if (state.progress.catastrophe && state.progress.stakes) {
       state.crisisCount += 1;
       state.nextCrisisAt += state.crisisInterval;
@@ -860,6 +989,7 @@
   }
 
   function finishTrial(success, message) {
+    showThoughts(success?'success':'failure');
     recordOutcome(success);
     const screen = $("firstScreen");
     const outcome = composeOutcome(success);
@@ -923,10 +1053,11 @@
   }
 
   async function runInstantTrial() {
+    clearThoughts();
     const trial = state.progress.trial;
     const tags = allHeroTags();
     const traitBonus = trial.helpful.filter(tag => tags.includes(tag)).length;
-    const interventionBonus = state.intervention === "whisper" ? 2 : state.intervention === "bless" ? 1 : 0;
+    const interventionBonus = state.intervention === "whisper" ? 2 : state.intervention === "bless" ? 1 : state.intervention === 'hinder' ? -2 : state.intervention === 'curse' ? -1 : 0;
     const eventBonus = state.progress.requiresAny?.some(record => state.milestones.includes(record)) ? 1 : 0;
     const score = trialValue(trial) + traitBonus + interventionBonus + eventBonus;
     const verdict = trialVerdict(score >= trial.threshold);
@@ -936,8 +1067,8 @@
     $("firstScreen").classList.remove("hand-visible");
     $("rollKind").textContent = "즉시 시련 · 누적 능력치 판정";
     $("rollTitle").textContent = trial.title;
-    $("rollResult").textContent = `${trial.statName} ${trialValue(trial)} / 필요 ${trial.threshold}${score !== trialValue(trial) && trialValue(trial) < trial.threshold ? ` (보정 후 ${score})` : ""}`;
-    $("rollDetail").textContent = success ? trial.success : trial.failure;
+    setStatText("rollResult", `${trial.statName} ${trialValue(trial)} / 필요 ${trial.threshold}${score !== trialValue(trial) && trialValue(trial) < trial.threshold ? ` (보정 후 ${score})` : ""}`);
+    setStatText("rollDetail", success ? trial.success : trial.failure);
     $("rollCondition").textContent = success ? "시련 조건 달성" : verdict.unlucky ? "뜻밖의 실패 · 동일 능력치의 10% 실패 판정" : "시련 조건 미달";
     $("rollCondition").className = `roll-condition ${success ? "met" : "failed"}`;
     $("rollContinue").disabled = false;
@@ -966,6 +1097,7 @@
 
   async function settleHand(message, intervention = "watch") {
     if (state.resolving) return;
+    if (state.progress.catastrophe && intervention !== 'fate') return;
     state.resolving = true;
     state.intervention = intervention;
     state.interventionBonusUsed = false;
@@ -985,21 +1117,18 @@
   }
 
   function useIntervention(card) {
-    if (card.disabled || state.resolving || trialReached(state.progress.trial)) return;
-    state.divine += 1;
-    renderResources();
-    card.classList.add("chosen");
-    return settleHand(`신의 개입 · ${card.querySelector("strong").textContent}이 시련에 스며든다.`, card.dataset.kind);
+    return; // Retired pre-deck action; old callers cannot bypass the drawn hand.
   }
 
   function resetCardStage() {
+    clearThoughts();
     $("divineRegret").classList.remove("visible");
     $("divineRegret").setAttribute("aria-hidden", "true");
     const screen = $("firstScreen");
     screen.classList.remove("hand-visible", "trial-effort", "trial-success", "trial-failure", "instant-resolve", "card-stage-visible", "outcome-visible", "story-visible", "story-with-trial");
     $("progressStory").setAttribute("aria-hidden", "true");
     $("progressCard").setAttribute("aria-hidden", "false");
-    $("progressGrowthResult").textContent = "";
+    setStatText("progressGrowthResult", "");
     $("revealTrialButton").disabled = true;
     state.storyResolver?.();
     state.storyResolver = null;
@@ -1078,6 +1207,7 @@
     await wait(1200);
     $("firstScreen").classList.add("story-visible");
     $("progressStory").setAttribute("aria-hidden", "false");
+    showThoughts('progress');
     $("cardScenePhase").textContent = "진행의 이야기";
     $("cardStageLabel").textContent = "";
     await wait(600);
@@ -1085,6 +1215,7 @@
     $("revealTrialButton").disabled = false;
     await storyRead;
     if (sequence !== state.sequence) return;
+    clearThoughts();
     $("firstScreen").classList.add("story-with-trial");
     await wait(900);
     $("cardScenePhase").textContent = "다가오는 시련";
@@ -1098,11 +1229,13 @@
     if (sequence !== state.sequence) return;
     $("cardScenePhase").textContent = state.progress.trial.mode === "instant" ? "즉시 시련" : `${state.trialTurns}턴 제한 시련`;
     renderHand();
-    $("firstScreen").classList.add("hand-visible");
-    if (trialReached(state.progress.trial)) {
-      await wait(800);
-      if (!state.resolving) $("divineHand").classList.add("praise-ready");
+    if(state.progress.catastrophe){
+      $('firstScreen').classList.remove('hand-visible');
+      $('cardStageLabel').textContent='신은 개입할 수 없다. 영웅이 재앙을 마주한다.';
+      await wait(1500);if(sequence!==state.sequence)return;
+      await settleHand('영웅이 자신의 힘으로 재앙에 맞선다.','fate');return;
     }
+    $("firstScreen").classList.add("hand-visible");
   }
 
   async function transitionStage() {
@@ -1136,6 +1269,7 @@
   }
 
   function showEnding(reason = "completed") {
+    clearThoughts();
     if (state.ended) return;
     if (state.pendingCrossroad) {
       window.lifeRules.apply(state.pendingCrossroad, state);
@@ -1156,7 +1290,8 @@
       : `${state.name}은 ${state.outcomeSuccesses}번의 시련을 넘어섰고 ${state.outcomeFailures}번 쓰러졌다. ${state.wills.length ? `마지막까지 ‘${state.wills.map(will => will.name).join(" · ")}’라는 의지를 품었다.` : "끝내 신의 뜻과 자신의 뜻 사이에서 답을 찾았다."}`;
     const highlights = state.history.map(item => `<p><span>${item.stage}</span><strong>${item.success ? "성공" : "실패"} · ${item.trial}</strong></p>`).join("");
     const crossroads = state.world.crossroads.map(x => `<p><span>인생의 갈림길</span><strong>${x.title}</strong><span>${x.text} ${x.effect}</span></p>`).join('');
-    $("endingRecords").innerHTML = highlights + crossroads || "<p><strong>아직 기록되지 않은 생애</strong></p>";
+    const dungeons = state.realm.records.map(x=>`<p><span>세계의 흔적</span><strong>${x}</strong></p>`).join('');
+    $("endingRecords").innerHTML = highlights + crossroads + dungeons || "<p><strong>아직 기록되지 않은 생애</strong></p>";
     $("endingOverlay").classList.add("visible");
   }
 
@@ -1173,7 +1308,7 @@
       $("outcomeKind").textContent = '인생의 갈림길';
       $("outcomeTitle").textContent = result.title;
       $("outcomeText").textContent = result.text;
-      $("outcomeTags").textContent = result.effect;
+      setStatText("outcomeTags", result.effect);
       $("nextTurnButton").textContent = state.stats.vitality <= 0 ? '생애를 회상한다' : '달라진 삶을 이어간다';
       renderRecords();
       return;
@@ -1247,7 +1382,14 @@
   $("introCradleButton").addEventListener("click", action(revealTraits));
   $("introRerollButton").addEventListener("click", rerollTraits);
   $("introBeginButton").addEventListener("click", action(showFirstScreen));
-  $("watchButton").addEventListener("click", action(() => settleHand("신은 침묵했다. 영웅은 자신의 성격과 의지로 시련을 마주한다.")));
+  $('dungeonButton').addEventListener('click',()=>{renderDungeon();$('dungeonDialog').showModal();});
+  $('thoughtToggle').addEventListener('click',()=>{
+    thoughtEnabled=!thoughtEnabled;clearThoughts();
+    $('thoughtToggle').textContent=`영웅의 독백 ${thoughtEnabled?'켜짐':'꺼짐'}`;
+    $('thoughtToggle').setAttribute('aria-pressed',String(thoughtEnabled));
+  });
+  $('closeDungeonButton').addEventListener('click',()=>$('dungeonDialog').close());
+  document.querySelectorAll('[data-dungeon]').forEach(button=>button.addEventListener('click',()=>createDungeon(button.dataset.dungeon)));
   $("nextTurnButton").addEventListener("click", action(advanceTurn));
   $("endObserveButton").addEventListener("click", () => showEnding("observed"));
   $("restartButton").addEventListener("click", resetIntro);
