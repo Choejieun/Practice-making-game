@@ -7,13 +7,13 @@
     <meta name="description" content="한 인간의 생애를 관찰하는 다크 판타지 게임 프로토타입" />
     <title>무명신의 기록</title>
     <link rel="preload" as="image" href="./assets/icons/cursor-divine-v1.png" />
-    <link rel="stylesheet" href="./styles.css?v=1.0.2-ui1" />
+    <link rel="stylesheet" href="./styles.css?v=1.2.1" />
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
     <div id="heroThoughtLayer" class="hero-thought-layer" aria-hidden="true"></div>
     <div class="stat-feedback" id="statFeedback" aria-live="polite" aria-label="능력치 성장 알림"></div>
-    <small class="build-version" aria-label="현재 게임 버전">v1.0.2 · 영웅의 발자취</small>
+    <small class="build-version" aria-label="현재 게임 버전">v1.2.1 · 인연의 별자리</small>
 
     <main class="intro-screen" id="introScreen">
       <section class="intro-step intro-title-step" id="introTitleStep">
@@ -32,6 +32,7 @@
         <div class="intro-reveal hidden" id="introReveal">
           <p class="intro-question" id="introQuestion" aria-live="polite"></p>
           <div class="intro-traits" id="introTraits" aria-label="아이의 성격"></div>
+          <div class="birth-stats" id="introBirthStats" aria-label="성격이 빚은 초기 능력치" aria-live="polite"></div>
           <div class="intro-actions hidden" id="introActions">
             <button class="gold-button" id="introBeginButton" type="button">이 운명을 지켜본다</button>
             <button class="text-button" id="introRerollButton" type="button">아이의 성격이 마음에 안 드는가?</button>
@@ -43,7 +44,7 @@
     <main class="first-screen hidden" id="firstScreen" aria-label="아이의 생애 첫 화면">
       <img class="first-emblem" src="./assets/icons/main-emblem.png" alt="무명신의 상징" />
 
-      <section class="persistent-hero-hud" aria-label="영웅의 핵심 상태">
+      <button type="button" class="persistent-hero-hud" id="heroDetailsButton" data-hero-details aria-label="영웅 자세히 보기" aria-haspopup="dialog" aria-controls="heroDetailsDialog">
         <img id="hudPortrait" alt="영웅 초상" />
         <div class="hud-identity">
           <strong id="hudName"></strong>
@@ -54,7 +55,11 @@
           <i><b id="hudHealthBar"></b></i>
           <span id="hudHealthText"></span>
         </div>
-      </section>
+      </button>
+      <nav class="hero-quick-links" aria-label="영웅 기록 메뉴">
+        <button type="button" data-hero-details aria-haspopup="dialog" aria-controls="heroDetailsDialog">영웅 자세히 보기 <span aria-hidden="true">↗</span></button>
+        <button type="button" data-relationship-map aria-haspopup="dialog" aria-controls="relationshipDialog">인연의 관계도 <span aria-hidden="true">↗</span></button>
+      </nav>
 
       <section class="divine-resources" aria-label="신성 개입과 관찰">
         <div><img src="./assets/icons/divine-star.png" alt="" /><span>신성 개입</span><strong id="divineCount">누적 0회</strong><small id="crisisCount">다음 재앙까지 8회</small></div>
@@ -70,21 +75,29 @@
           <button type="button" data-dungeon="mine">무너진 광산 · 근력</button>
           <button type="button" data-dungeon="shrine">지하 성소 · 지식</button>
           <button type="button" data-dungeon="forest">가시 미궁 · 민첩</button>
+          <button type="button" data-dungeon="mirror">물거울의 회랑 · 직감</button>
+          <button type="button" data-dungeon="court">메아리의 폐정 · 매력</button>
         </div>
         <p>난이도는 생성 당시의 성장기와 관련 능력치로 고정됩니다. 유년기에는 토벌대와 함께 입구를 돕습니다. 실패하면 던전이 남고 황폐도·재앙 압력이 각각 1 증가합니다.</p>
         <button id="closeDungeonButton" type="button">닫기</button>
+        <button class="details-link" type="button" data-hero-details>영웅 자세히 보기</button>
       </dialog>
       <dialog id="helpDialog" class="help-dialog">
         <h2>무명신의 기록</h2>
+        <p>현재 버전 v1.2.1 · 인연의 별자리. 인물 이름에 마우스를 올리면 관계를 볼 수 있습니다. 관계도에서 영웅을 향한 마음과 사건별 평판 기록을 확인하세요.</p>
         <button id="thoughtToggle" type="button" aria-pressed="true">영웅의 독백 켜짐</button>
         <p>v1.0.2 · 청소년기부터 구조와 탐험 등 특별한 사건을 겪습니다. 연속 사건은 같은 나이에 이어지며, 살려 낸 인물이 훗날 보은할 수 있습니다. 관계 사건에는 시련과 손패가 없고, 현재 능력치에 따라 인연의 깊이가 달라집니다.</p>
+        <p>v1.1.0 · 가족의 첫 기억과 능력치별 인연, 성격·의지·선행 사건이 만나는 연대기가 추가되었습니다. 대화 주제는 영웅이 기본 능력치로 정하며 신은 대화를 지켜봅니다. 행운은 생성 시 0~100%로 정해지고, 일반 진행마다 1% 확률로 짧은 우연을 겪어 1%p 오릅니다(최대 100%). 행운은 신탁을 뽑는 가중치이며 시련의 자동 성공 확률이 아닙니다.</p>
+        <p>가호와 가혹한 신탁, 개입을 거두는 선택은 서로 다른 흔적을 남깁니다. 도움을 주었다고 반드시 명예를 얻거나, 고난을 주었다고 반드시 패배하는 것은 아닙니다. 영웅이 실제로 겪은 결말과 함께 명예·상흔의 기록이 쌓여 뒤의 사건과 회상에 반영됩니다.</p>
+        <p>마왕의 전조는 생애를 시작할 때 25% 확률로 정해집니다. 전조를 겪고 성인기의 준비를 지나야 중년 이후 마왕의 재앙에 닿습니다. 매 생애에 나타나는 사건이 아니며, 이 재앙은 신성 개입으로 인한 재앙 횟수를 대신 소모하지 않습니다. 연대기 삽화는 클릭하면 본문 안으로 접힙니다.</p>
         <p>일반 시련마다 덱에서 7장을 뽑습니다. 행운이 높으면 가호, 낮으면 가혹한 신탁을 뽑을 가능성이 높습니다. 지켜보기는 확정 지급되지 않으며 손패에 있을 때만 선택할 수 있습니다. 한 장을 선택하면 손패는 다음 진행에서 버려지고 덱이 비면 버린 카드를 다시 섞습니다.</p>
         <p>신탁은 특정 능력치에 ±1~3의 일시 보정을 주며 해당 시련이 끝나면 사라집니다. 관련 없는 능력치 카드는 판정에 영향을 주지 않지만 사용 시 개입 +1입니다. 재앙에는 손패가 없고 신은 개입하거나 관찰 횟수를 쌓을 수 없습니다. 영웅의 노력으로만 진행됩니다.</p>
         <p>진행은 영웅의 성격·의지·경험에 따라 자동으로 정해집니다. 즉시 시련은 현재 능력치를, 제한 시련은 매 턴의 노력을 확인합니다.</p>
         <p>신성 개입에는 사용 횟수 제한이 없습니다. 카드 사용과 성격 재추첨은 각각 누적 개입 +1입니다. 현재 테스트 밸런스는 8회마다 재앙입니다. 현재 시련을 마친 뒤 재앙을 만나며 재앙 중에는 일반 진행과 나이 증가가 멈춥니다.</p>
         <p>재앙은 실제 관계·직업·유산·성격·의지에서 지켜야 할 대상을 정합니다. 성공과 실패 모두 ‘인생의 갈림길’로 남아 이후 사건을 바꿉니다. 연인이나 약혼자가 없는 삶에는 그 사람을 잃는 사건이 발생하지 않습니다.</p>
         <p>지켜보기는 계속 사용할 수 있습니다. 표시되는 횟수는 다음 의지 발현까지 남은 관찰 횟수입니다. 10회, 9회, 8회 순으로 줄어들며 최근 지켜본 경험에서 의지가 생깁니다.</p>
-        <p>영웅 손잡이는 마우스를 올리거나 클릭해서 펼칩니다. ‘다음 기록’을 눌러 생애를 이어가고, ‘관찰 종료’로 언제든 회상할 수 있습니다.</p>
+        <p>첫 영웅 소개는 ‘이 아이의 이야기를 시작한다’를 눌러야 넘어갑니다. 상단 초상화 또는 ‘영웅 자세히 보기’에서 가족·성격·의지·지나온 이야기를 다시 읽을 수 있습니다. 상세 창이 열려 있는 동안 다음 장면으로 넘어가지 않습니다.</p>
+        <button type="button" class="details-link" data-hero-details>영웅 자세히 보기</button>
         <p>서체: 국립박물관문화재단클래식 Light · Medium · Bold<br>제공: 국립박물관문화재단. 서체 원본은 수정하지 않았습니다.</p>
         <fieldset class="audio-settings"><legend>소리 설정</legend>
           <label for="audio-music">배경 음악 <output id="audio-music-value">18%</output></label>
@@ -116,7 +129,7 @@
           <div class="hero-panel-traits" id="heroPanelTraits"></div>
         </div>
         <dl class="hero-panel-facts">
-          <div><dt>부모</dt><dd id="heroParent"></dd></div>
+          <div><dt>가족</dt><dd id="heroParent"></dd></div>
           <div><dt>재산</dt><dd id="heroWealth"></dd></div>
         </dl>
         <div class="hero-stats" id="heroStats" aria-label="영웅 능력치"></div>
@@ -141,6 +154,8 @@
           <h2 id="childName">이름 없는 아이</h2>
           <div class="child-record" id="childRecord"></div>
           <div class="child-traits" id="childTraits"></div>
+          <div class="birth-stats" id="childBirthStats" aria-label="초기 능력치"></div>
+          <button class="gold-button hidden" id="heroIntroductionContinue" type="button" disabled>이 아이의 이야기를 시작한다</button>
         </div>
       </section>
 
@@ -153,7 +168,7 @@
         <div class="card-table">
           <section class="progress-story" id="progressStory" aria-hidden="true">
             <small>한 인간의 기록</small>
-            <p id="progressStoryText"></p>
+            <div class="story-scroll" id="storyScroll" tabindex="0" role="region" aria-label="진행 이야기, 길면 스크롤하여 읽기"><div id="progressStoryText"></div></div>
             <div class="progress-context" id="progressContext" aria-label="이 장면의 배경"></div>
             <p class="progress-growth" id="progressGrowthResult"></p>
             <button id="revealTrialButton" type="button" disabled>시련을 펼친다</button>
@@ -214,6 +229,7 @@
             </div>
           </article>
         </div>
+        <div class="outcome-layout">
         <article class="outcome-summary" id="outcomeSummary" aria-hidden="true">
           <small id="outcomeKind">기록의 결과</small>
           <h3 id="outcomeTitle"></h3>
@@ -221,12 +237,25 @@
           <div id="outcomeTags"></div>
         </article>
         <button class="next-turn hidden" id="nextTurnButton" type="button">다음 기록을 펼친다</button>
+        </div>
       </section>
 
       <section class="divine-hand" id="divineHand" aria-label="신의 개입 카드">
         <p class="intervention-question" id="handSummary">운명의 덱에서 7장을 뽑습니다.</p>
         <div class="hand-cards" id="handCards"></div>
       </section>
+
+      <dialog id="luckInterlude" class="luck-interlude" aria-labelledby="luckInterludeTitle">
+        <small id="luckInterludeTitle">스쳐 가는 행운</small><p id="luckInterludeText"></p><strong id="luckInterludeValue"></strong>
+        <button class="gold-button" id="closeLuckInterlude" type="button">닫기 · 이야기를 계속한다</button>
+      </dialog>
+      <dialog id="chronicleCutscene" class="chronicle-cutscene" aria-labelledby="cutsceneTitle">
+        <small>연대기의 한 장</small><h2 id="cutsceneTitle"></h2>
+        <button id="cutsceneImageButton" type="button" aria-label="삽화를 본문에 접고 이야기를 계속 읽는다"><img id="cutsceneImage" alt="" /></button>
+        <p id="cutsceneCaption"></p>
+        <button id="cutsceneContinue" type="button">이 장면을 기억한다 · 계속 읽기</button>
+        <button type="button" class="details-link" data-hero-details>영웅 자세히 보기</button>
+      </dialog>
 
       <section class="divine-regret" id="divineRegret" aria-hidden="true" role="status">
         <img src="./assets/icons/main-emblem.png" alt="" />
@@ -282,10 +311,53 @@
       </section>
     </main>
 
-    <script src="./life-content.js?v=1.0.2"></script>
-    <script src="./audio.js?v=0.18.0"></script>
-    <script src="./life-rules.js?v=1.0.2"></script>
-    <script src="./heroic-content.js?v=1.0.2"></script>
-    <script src="./game.js?v=1.0.2-ui1"></script>
+    <dialog id="heroDetailsDialog" class="hero-details-dialog" aria-labelledby="heroDetailsName">
+      <header class="hero-details-header">
+        <img id="heroDetailsPortrait" alt="현재 영웅의 초상" />
+        <div><small>시선 아래의 생애</small><h2 id="heroDetailsName"></h2><p id="heroDetailsIdentity"></p></div>
+        <button id="closeHeroDetails" type="button" autofocus aria-label="영웅 상세 닫고 이야기로 돌아가기">닫기 ×</button>
+      </header>
+      <div class="hero-details-body" tabindex="0" role="region" aria-label="영웅 상세 정보, 스크롤하여 읽기">
+        <div class="hero-details-profile">
+          <section><h3>삶이 시작된 자리</h3><dl class="details-facts">
+            <div><dt>부모 · 가족</dt><dd id="heroDetailsFamily"></dd></div>
+            <div><dt>재산 · 터전</dt><dd id="heroDetailsWealth"></dd></div>
+            <div><dt>태어난 곳</dt><dd id="heroDetailsBirthplace"></dd></div>
+          </dl><p id="heroDetailsOrigin"></p></section>
+          <section><h3>타고난 성격</h3><ul class="details-traits" id="heroDetailsTraits"></ul></section>
+          <section><h3>현재 능력치</h3><dl class="details-stats" id="heroDetailsStats"></dl></section>
+          <section><h3>마음에 품은 의지</h3><ul id="heroDetailsWills"></ul></section>
+          <section><h3>맺어진 인연</h3><button class="details-link" type="button" data-relationship-map>인연의 관계도 펼치기 ↗</button><ul id="heroDetailsRelations"></ul></section>
+          <section><h3>간직한 물품</h3><ul id="heroDetailsItems"></ul></section>
+        </div>
+        <div class="hero-details-journal">
+          <section><h3>지금까지의 이야기</h3><p class="details-note">진행 제목을 누르면 당시의 이야기와 결과가 펼쳐집니다. 다시 누르면 접힙니다.</p><ol id="heroDetailsHistory"></ol></section>
+          <section><h3>인생의 갈림길 · 세계의 흔적</h3><ul id="heroDetailsCrossroads"></ul></section>
+          <section><h3>기억에 남은 이름들</h3><ul id="heroDetailsMilestones"></ul></section>
+        </div>
+      </div>
+      <footer>이 창을 닫으면 멈춰 둔 이야기를 이어갑니다.</footer>
+    </dialog>
+
+    <dialog id="relationshipDialog" class="relationship-dialog" aria-labelledby="relationshipTitle">
+      <header><div><small>인연의 별자리</small><h2 id="relationshipTitle">한 생애를 둘러싼 사람들</h2></div><button type="button" id="closeRelationships" autofocus>닫기 ×</button></header>
+      <div class="relationship-layout">
+        <section class="relationship-chart"><p id="relationshipCount"></p><div class="relationship-map-scroll"><div id="relationshipCanvas"><svg id="relationshipLines" aria-hidden="true"></svg><div id="relationshipNodes"></div></div></div><div class="relationship-controls"><button type="button" id="expandRelationships">관계 더 펼치기</button><button type="button" id="collapseRelationships">가까운 인연만 보기</button></div></section>
+        <aside id="relationshipDetail" aria-live="polite"></aside>
+      </div>
+      <footer>실패의 흔적은 그 사건에 관련된 사람에게만 남습니다. 붉은 선은 걱정과 불신, 금빛 선은 이어진 인연입니다.</footer>
+    </dialog>
+
+    <script src="./life-content.js?v=1.1.0"></script>
+    <script src="./audio.js?v=1.2.1"></script>
+    <script src="./life-rules.js?v=1.1.0"></script>
+    <script src="./heroic-content.js?v=1.1.0"></script>
+    <script src="./social-content.js?v=1.2.1"></script>
+    <script src="./chronicle-content.js?v=1.1.0"></script>
+    <script src="./narrative-rules.js?v=1.2.1"></script>
+    <script src="./person-names.js?v=1.2.1"></script>
+    <script src="./relationship-rules.js?v=1.2.1"></script>
+    <script src="./relationship-view.js?v=1.2.1"></script>
+    <script src="./game.js?v=1.2.1"></script>
   </body>
 </html>
