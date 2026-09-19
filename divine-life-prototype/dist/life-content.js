@@ -21,7 +21,7 @@ window.lifeContent = [
   effect: "성격과 지난 경험이 이 장면을 불러왔다.",
   trial: { title: trialTitle, text: question, mode: "turn", base: 2, stat, statName, threshold, helpful: [tag],
     success: `${milestone}.`, failure: "뜻대로 되지 않았지만, 그 노력과 질문은 기억에 남았다.", successGain: 1, milestone,
-    efforts: [s1,s2].map((title,index) => ({code:`${stage}-${id}-S0${index+1}`, title, text: index ? "앞선 노력에서 배운 것을 다음 시도에 옮긴다." : "작은 부분부터 차근차근 익히고 다시 시도한다.", stat, statName, min: index ? 1 : 0, max: 3}))
+    efforts: [s1,s2].map((title,index) => ({code:`${stage}-${id}-S0${index+1}`, title, text: index ? "앞선 노력에서 배운 것을 다음 시도에 옮긴다." : "작은 부분부터 차근차근 익히고 다시 시도한다.", stat, statName, min: 0, max: 3}))
   }
 }));
 
@@ -42,7 +42,7 @@ window.lifeContent.push(...[
 ].map(([stage,id,title,story,tag,threshold,trialTitle,s1,s2,milestone,success,failure]) => ({
   id:`${stage}-${id}`,stage,title,story,text:story.split('. ')[0]+'.',weight:[tag],effect:'',
   trial:{title:trialTitle,text:'눈앞의 무게를 감당해 끝까지 해낼 수 있을까?',mode:'turn',base:2,stat:'strength',statName:'근력',threshold,helpful:[tag],success,failure,successGain:1,milestone,
-    efforts:[s1,s2].map((title,index)=>({code:`${stage}-${id}-S0${index+1}`,title,text:title+'.',stat:'strength',statName:'근력',min:index?1:0,max:3}))}
+    efforts:[s1,s2].map((title,index)=>({code:`${stage}-${id}-S0${index+1}`,title,text:title+'.',stat:'strength',statName:'근력',min: 0,max:3}))}
 })));
 
 window.progressStories = {

@@ -50,6 +50,14 @@
       for (let i = 0; i < 6; i++) tone(effects, (kind === 'dice' ? 180 : 330) + i * 19, now + i * .09, .07, .12, 'triangle');
     } else if (kind === 'growth') {
       [523.25,659.25,783.99].forEach((f,i) => tone(effects,f,now+i*.13,.7,.11));
+    } else if (kind === 'success') {
+      // A restrained rising bell, distinct from the short stat-growth arpeggio.
+      [392,493.88,587.33,783.99].forEach((f,i)=>tone(effects,f,now+i*.16,1.6,.13));
+      tone(effects,196,now,2.1,.09);
+    } else if (kind === 'failure') {
+      // A descending, fading chord: no sharp noise or startling impact.
+      [196,174.61,130.81].forEach((f,i)=>tone(effects,f,now+i*.30,1.8,.15,'triangle'));
+      tone(effects,65.41,now+.12,2.4,.10);
     } else if (kind === 'regret') {
       [220,174.61,146.83].forEach((f,i) => tone(effects,f,now+i*.25,1.5,.12));
     } else tone(effects,440,now,.1,.07);
